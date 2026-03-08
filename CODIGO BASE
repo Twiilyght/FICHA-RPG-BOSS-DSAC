@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Criador de Inimigos - DSAC</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<style>
+
+body{
+background:#050508;
+color:#d1d1d1;
+font-family:Arial;
+}
+
+.bloco{
+background:#111116;
+border:1px solid #2a2a34;
+padding:20px;
+border-radius:12px;
+margin:20px auto;
+max-width:900px;
+}
+
+h2{
+margin-top:0;
+color:#ff4d4d;
+border-bottom:1px solid #2a2a34;
+padding-bottom:6px;
+}
+
+input,select,textarea{
+background:#08080c;
+border:1px solid #2a2a34;
+color:#e5e5e5;
+border-radius:8px;
+padding:8px;
+width:100%;
+}
+
+.linha{
+margin:10px 0;
+display:flex;
+flex-direction:column;
+}
+
+.status-grid{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:10px;
+}
+
+.status-box{
+background:#08080c;
+padding:10px;
+border-radius:8px;
+border:1px solid #2a2a34;
+}
+
+button{
+background:#8b0000;
+border:none;
+color:white;
+padding:10px 20px;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+}
+
+button:hover{
+background:#b30000;
+}
+
+.ataque, .habilidade{
+border:1px solid #2a2a34;
+padding:10px;
+border-radius:8px;
+margin:10px 0;
+}
+
+.tituloSec{
+color:#ff6b6b;
+margin-bottom:6px;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="ficha">
+
+<div class="bloco">
+<h2>Slot de Inimigo</h2>
+
+<select id="slot">
+<option value="1">Slot 1</option>
+<option value="2">Slot 2</option>
+<option value="3">Slot 3</option>
+<option value="4">Slot 4</option>
+<option value="5">Slot 5</option>
+<option value="6">Slot 6</option>
+<option value="7">Slot 7</option>
+<option value="8">Slot 8</option>
+<option value="9">Slot 9</option>
+<option value="10">Slot 10</option>
+</select>
+
+</div>
+
+
+<div class="bloco">
+
+<h2>Informações do Inimigo</h2>
+
+<div class="linha">
+<label>Nome</label>
+<input id="nome">
+</div>
+
+<div class="linha">
+<label>Tipo</label>
+<select id="tipo">
+<option>Monstro</option>
+<option>Humano</option>
+<option>Aberração</option>
+<option>Boss</option>
+</select>
+</div>
+
+<div class="linha">
+<label>VD (Nível de ameaça)</label>
+<input type="number" id="vd" value="1">
+</div>
+
+<div class="linha">
+<label>Descrição</label>
+<textarea id="descricao"></textarea>
+</div>
+
+</div>
+
+
+<div class="bloco">
+
+<h2>Estatísticas</h2>
+
+<div class="status-grid">
+
+<div class="status-box">
+<label>Vida</label>
+<input id="vida" type="number">
+</div>
+
+<div class="status-box">
+<label>RD</label>
+<input id="rd" type="number">
+</div>
+
+<div class="status-box">
+<label>Defesa Base</label>
+<input id="defesa" type="number">
+</div>
+
+<div class="status-box">
+<label>Iniciativa</label>
+<input id="iniciativa" type="number">
+</div>
+
+<div class="status-box">
+<label>Velocidade</label>
+<input id="velocidade" type="number">
+</div>
+
+<div class="status-box">
+<label>Ações por turno</label>
+<input id="acoes" type="number" value="1">
+</div>
+
+</div>
+
+</div>
+
+
+<div class="bloco">
+
+<h2>Ataques</h2>
+
+<div id="ataques"></div>
+
+<button onclick="addAtaque()">Adicionar Ataque</button>
+
+</div>
+
+
+<div class="bloco">
+
+<h2>Habilidades</h2>
+
+<div id="habilidades"></div>
+
+<button onclick="addHabilidade()">Adicionar Habilidade</button>
+
+</div>
+
+
+<div class="bloco">
+
+<button onclick="salvar()">Salvar Inimigo</button>
+
+<button onclick="gerarPDF()">Exportar PDF</button>
+
+</div>
+
+</div>
+
+
+<script>
+
+let ataques=[]
+let habilidades=[]
+
+function addAtaque(){
+
+ataques.push({nome:"",ataque:"",dano:"",desc:""})
+
+renderAtaques()
+
+}
+
+function renderAtaques(){
+
+const box=document.getElementById("ataques")
+
+box.innerHTML=""
+
+ataques.forEach((a,i)=>{
+
+box.innerHTML+=`
+
+<div class="ataque">
+
+<div class="tituloSec">Ataque ${i+1}</div>
+
+<input placeholder="Nome"
+oninput="ataques[${i}].nome=this.value">
+
+<input placeholder="Rolagem de ataque (ex: 2d20+6)"
+oninput="ataques[${i}].ataque=this.value">
+
+<input placeholder="Dano (ex: 3d10+4)"
+oninput="ataques[${i}].dano=this.value">
+
+<textarea placeholder="Descrição"
+oninput="ataques[${i}].desc=this.value"></textarea>
+
+</div>
+
+`
+
+})
+
+}
+
+
+function addHabilidade(){
+
+habilidades.push({nome:"",desc:""})
+
+renderHabilidades()
+
+}
+
+function renderHabilidades(){
+
+const box=document.getElementById("habilidades")
+
+box.innerHTML=""
+
+habilidades.forEach((h,i)=>{
+
+box.innerHTML+=`
+
+<div class="habilidade">
+
+<input placeholder="Nome"
+oninput="habilidades[${i}].nome=this.value">
+
+<textarea placeholder="Descrição"
+oninput="habilidades[${i}].desc=this.value"></textarea>
+
+</div>
+
+`
+
+})
+
+}
+
+
+function salvar(){
+
+const slot=document.getElementById("slot").value
+
+const dados={
+
+nome:nome.value,
+tipo:tipo.value,
+vd:vd.value,
+descricao:descricao.value,
+vida:vida.value,
+rd:rd.value,
+defesa:defesa.value,
+iniciativa:iniciativa.value,
+velocidade:velocidade.value,
+acoes:acoes.value,
+ataques:ataques,
+habilidades:habilidades
+
+}
+
+localStorage.setItem("inimigo_"+slot,JSON.stringify(dados))
+
+alert("Inimigo salvo!")
+
+}
+
+
+function carregar(){
+
+const slot=document.getElementById("slot").value
+
+const d=JSON.parse(localStorage.getItem("inimigo_"+slot))
+
+if(!d)return
+
+nome.value=d.nome
+tipo.value=d.tipo
+vd.value=d.vd
+descricao.value=d.descricao
+vida.value=d.vida
+rd.value=d.rd
+defesa.value=d.defesa
+iniciativa.value=d.iniciativa
+velocidade.value=d.velocidade
+acoes.value=d.acoes
+
+ataques=d.ataques||[]
+habilidades=d.habilidades||[]
+
+renderAtaques()
+renderHabilidades()
+
+}
+
+document.getElementById("slot").addEventListener("change",carregar)
+
+async function gerarPDF(){
+
+const {jsPDF}=window.jspdf
+
+const canvas=await html2canvas(document.getElementById("ficha"))
+
+const img=canvas.toDataURL("image/png")
+
+const pdf=new jsPDF()
+
+pdf.addImage(img,"PNG",5,5,200,280)
+
+pdf.save("inimigo.pdf")
+
+}
+
+carregar()
+
+</script>
+
+</body>
+</html>
