@@ -73,7 +73,7 @@ button:hover{
 background:#b30000;
 }
 
-.ataque,.habilidade{
+.ataque{
 border:1px solid #2a2a34;
 padding:10px;
 border-radius:8px;
@@ -97,6 +97,12 @@ margin:5px 0;
 cursor:pointer;
 font-size:20px;
 text-align:center;
+transition: all 0.3s ease;
+}
+
+.dice:hover{
+color:#00ffff;
+text-shadow: 0 0 8px #00ffff, 0 0 12px #00ffff;
 }
 
 .resultado{
@@ -233,6 +239,11 @@ color:#9be7ff;
 <input id="esquiva" disabled>
 </div>
 
+<div class="status-box">
+<label>Deslocamento (quadrados)</label>
+<input id="deslocamento" disabled>
+</div>
+
 </div>
 
 </div>
@@ -245,17 +256,6 @@ color:#9be7ff;
 <div id="ataques"></div>
 
 <button onclick="addAtaque()">Adicionar Ataque</button>
-
-</div>
-
-
-<div class="bloco">
-
-<h2>Habilidades</h2>
-
-<div id="habilidades"></div>
-
-<button onclick="addHabilidade()">Adicionar Habilidade</button>
 
 </div>
 
@@ -278,7 +278,6 @@ const periciasLista=[
 ]
 
 let ataques=[]
-let habilidades=[]
 
 function criarPericias(){
 
@@ -354,21 +353,15 @@ return mapa[i]
 
 }
 
+// --- Status agora com deslocamento ---
 function recalcularStatus(){
-
-const nivel=parseInt(nivelInput().value)||1
 
 const con=parseInt(document.getElementById("atr_CON").value)||0
 const intt=parseInt(document.getElementById("atr_INT").value)||0
 const agi=parseInt(document.getElementById("atr_AGI").value)||0
 
-const vidaMax=(20+con*2)*nivel
-const sanMax=(20+intt*2)*nivel
-
-document.getElementById("vida").value=vidaMax
-document.getElementById("sanidade").value=sanMax
-
 document.getElementById("esquiva").value=10+agi
+document.getElementById("deslocamento").value=5+agi
 
 }
 
@@ -376,12 +369,10 @@ function nivelInput(){
 return document.getElementById("nivel")
 }
 
+// --- Ataques ---
 function addAtaque(){
-
 ataques.push({nome:"",ataque:"",dano:"",desc:""})
-
 renderAtaques()
-
 }
 
 function renderAtaques(){
@@ -392,65 +383,61 @@ box.innerHTML=""
 ataques.forEach((a,i)=>{
 
 box.innerHTML+=`
-
 <div class="ataque">
 
 <div class="tituloSec">Ataque ${i+1}</div>
 
-<input placeholder="Nome"
-oninput="ataques[${i}].nome=this.value">
+<input placeholder="Nome" oninput="ataques[${i}].nome=this.value" value="${a.nome}">
+<input placeholder="Rolagem (ex: 2d20+6)" oninput="ataques[${i}].ataque=this.value" value="${a.ataque}">
+<input placeholder="Dano (ex: 3d10+4)" oninput="ataques[${i}].dano=this.value" value="${a.dano}">
 
-<input placeholder="Rolagem (ex: 2d20+6)"
-oninput="ataques[${i}].ataque=this.value">
+<span class="dice" title="Rolar Dano" onclick="document.getElementById('res_ataque_${i}').innerText=rolarDano(ataques[${i}].dano)">🎲</span>
+<span id="res_ataque_${i}" class="resultado"></span>
 
-<input placeholder="Dano (ex: 3d10+4)"
-oninput="ataques[${i}].dano=this.value">
+<textarea placeholder="Descrição" oninput="ataques[${i}].desc=this.value">${a.desc}</textarea>
 
-<textarea placeholder="Descrição"
-oninput="ataques[${i}].desc=this.value"></textarea>
+<button onclick="excluirAtaque(${i})" style="background:#555;margin-top:5px;">❌ Excluir</button>
 
 </div>
-
 `
 
 })
 
+recalcularStatus()
 }
 
-function addHabilidade(){
+function rolarDano(danoStr){
+  const regex=/(\d+)d(\d+)([+-]\d+)?/i
+  const match=danoStr.match(regex)
+  if(!match) return danoStr
 
-habilidades.push({nome:"",desc:""})
+  const n=parseInt(match[1])
+  const m=parseInt(match[2])
+  const bonus=parseInt(match[3]||0)
 
-renderHabilidades()
+  let resultados=[]
+  let total=0
+  for(let i=0;i<n;i++){
+    const r=d20Custom(m)
+    resultados.push(r)
+    total+=r
+  }
 
+  total+=bonus
+
+  return `${n}d${m}${bonus>=0?'+':''}${bonus} [${resultados.join(',')}] → ${total}`
 }
 
-function renderHabilidades(){
-
-const box=document.getElementById("habilidades")
-
-box.innerHTML=""
-
-habilidades.forEach((h,i)=>{
-
-box.innerHTML+=`
-
-<div class="habilidade">
-
-<input placeholder="Nome"
-oninput="habilidades[${i}].nome=this.value">
-
-<textarea placeholder="Descrição"
-oninput="habilidades[${i}].desc=this.value"></textarea>
-
-</div>
-
-`
-
-})
-
+function d20Custom(max){
+  return Math.floor(Math.random()*max)+1
 }
 
+function excluirAtaque(i){
+ataques.splice(i,1)
+renderAtaques()
+}
+
+// --- Salvar e carregar ---
 function salvar(){
 
 const slot=document.getElementById("slot").value
@@ -466,7 +453,6 @@ sanidade:sanidade.value,
 rd:rd.value,
 esquiva:esquiva.value,
 ataques:ataques,
-habilidades:habilidades,
 atributos:{
 FOR:atr_FOR.value,
 CON:atr_CON.value,
@@ -515,11 +501,8 @@ document.getElementById("per_"+i).value=d.pericias?.["per_"+i]||1
 })
 
 ataques=d.ataques||[]
-habilidades=d.habilidades||[]
 
 renderAtaques()
-renderHabilidades()
-
 recalcularStatus()
 
 }
