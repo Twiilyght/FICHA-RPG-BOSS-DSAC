@@ -73,7 +73,7 @@ button:hover{
 background:#b30000;
 }
 
-.ataque, .habilidade{
+.ataque,.habilidade{
 border:1px solid #2a2a34;
 padding:10px;
 border-radius:8px;
@@ -83,6 +83,25 @@ margin:10px 0;
 .tituloSec{
 color:#ff6b6b;
 margin-bottom:6px;
+}
+
+.pericia{
+display:grid;
+grid-template-columns:1fr 80px 40px 200px;
+gap:10px;
+align-items:center;
+margin:5px 0;
+}
+
+.dice{
+cursor:pointer;
+font-size:20px;
+text-align:center;
+}
+
+.resultado{
+font-size:12px;
+color:#9be7ff;
 }
 
 </style>
@@ -131,8 +150,8 @@ margin-bottom:6px;
 </div>
 
 <div class="linha">
-<label>VD (Nível de ameaça)</label>
-<input type="number" id="vd" value="1">
+<label>Nível</label>
+<input type="number" id="nivel" value="1" onchange="recalcularStatus()">
 </div>
 
 <div class="linha">
@@ -145,7 +164,52 @@ margin-bottom:6px;
 
 <div class="bloco">
 
-<h2>Estatísticas</h2>
+<h2>Atributos</h2>
+
+<div class="status-grid">
+
+<div class="status-box">
+<label>FOR</label>
+<input type="number" id="atr_FOR" value="0">
+</div>
+
+<div class="status-box">
+<label>CON</label>
+<input type="number" id="atr_CON" value="0" onchange="recalcularStatus()">
+</div>
+
+<div class="status-box">
+<label>AGI</label>
+<input type="number" id="atr_AGI" value="0" onchange="recalcularStatus()">
+</div>
+
+<div class="status-box">
+<label>INT</label>
+<input type="number" id="atr_INT" value="0" onchange="recalcularStatus()">
+</div>
+
+<div class="status-box">
+<label>POD</label>
+<input type="number" id="atr_POD" value="0">
+</div>
+
+</div>
+
+</div>
+
+
+<div class="bloco">
+
+<h2>Perícias</h2>
+
+<div id="pericias"></div>
+
+</div>
+
+
+<div class="bloco">
+
+<h2>Status</h2>
 
 <div class="status-grid">
 
@@ -155,28 +219,18 @@ margin-bottom:6px;
 </div>
 
 <div class="status-box">
+<label>Sanidade</label>
+<input id="sanidade" type="number">
+</div>
+
+<div class="status-box">
 <label>RD</label>
 <input id="rd" type="number">
 </div>
 
 <div class="status-box">
-<label>Defesa Base</label>
-<input id="defesa" type="number">
-</div>
-
-<div class="status-box">
-<label>Iniciativa</label>
-<input id="iniciativa" type="number">
-</div>
-
-<div class="status-box">
-<label>Velocidade</label>
-<input id="velocidade" type="number">
-</div>
-
-<div class="status-box">
-<label>Ações por turno</label>
-<input id="acoes" type="number" value="1">
+<label>Esquiva (auto)</label>
+<input id="esquiva" disabled>
 </div>
 
 </div>
@@ -209,7 +263,6 @@ margin-bottom:6px;
 <div class="bloco">
 
 <button onclick="salvar()">Salvar Inimigo</button>
-
 <button onclick="gerarPDF()">Exportar PDF</button>
 
 </div>
@@ -219,8 +272,109 @@ margin-bottom:6px;
 
 <script>
 
+const periciasLista=[
+"Luta","Fortitude","Reflexos","Furtividade",
+"Iniciativa","Pontaria","Enganação","Percepção","Vontade"
+]
+
 let ataques=[]
 let habilidades=[]
+
+function criarPericias(){
+
+const box=document.getElementById("pericias")
+
+periciasLista.forEach((p,i)=>{
+
+box.innerHTML+=`
+
+<div class="pericia">
+
+<div>${p}</div>
+
+<select id="per_${i}">
+${[...Array(10).keys()].map(v=>`<option>${v+1}</option>`).join("")}
+</select>
+
+<span class="dice" onclick="rolarPericia(${i})">🎲</span>
+
+<span id="res_${i}" class="resultado"></span>
+
+</div>
+
+`
+
+})
+
+}
+
+function d20(){
+return Math.floor(Math.random()*20)+1
+}
+
+function rolarPericia(i){
+
+const qtd=parseInt(document.getElementById("per_"+i).value)
+
+const resultados=[]
+let maior=0
+
+for(let x=0;x<qtd;x++){
+const r=d20()
+resultados.push(r)
+if(r>maior)maior=r
+}
+
+const atributo=getAtributoPericia(i)
+
+const bonus=parseInt(document.getElementById("atr_"+atributo).value)||0
+
+const total=maior+bonus
+
+document.getElementById("res_"+i).innerText=
+`${qtd}d20 [${resultados.join(",")}] → ${maior}+${bonus}=${total}`
+
+}
+
+function getAtributoPericia(i){
+
+const mapa={
+0:"FOR",
+1:"CON",
+2:"AGI",
+3:"AGI",
+4:"AGI",
+5:"AGI",
+6:"INT",
+7:"INT",
+8:"POD"
+}
+
+return mapa[i]
+
+}
+
+function recalcularStatus(){
+
+const nivel=parseInt(nivelInput().value)||1
+
+const con=parseInt(document.getElementById("atr_CON").value)||0
+const intt=parseInt(document.getElementById("atr_INT").value)||0
+const agi=parseInt(document.getElementById("atr_AGI").value)||0
+
+const vidaMax=(20+con*2)*nivel
+const sanMax=(20+intt*2)*nivel
+
+document.getElementById("vida").value=vidaMax
+document.getElementById("sanidade").value=sanMax
+
+document.getElementById("esquiva").value=10+agi
+
+}
+
+function nivelInput(){
+return document.getElementById("nivel")
+}
 
 function addAtaque(){
 
@@ -233,7 +387,6 @@ renderAtaques()
 function renderAtaques(){
 
 const box=document.getElementById("ataques")
-
 box.innerHTML=""
 
 ataques.forEach((a,i)=>{
@@ -247,7 +400,7 @@ box.innerHTML+=`
 <input placeholder="Nome"
 oninput="ataques[${i}].nome=this.value">
 
-<input placeholder="Rolagem de ataque (ex: 2d20+6)"
+<input placeholder="Rolagem (ex: 2d20+6)"
 oninput="ataques[${i}].ataque=this.value">
 
 <input placeholder="Dano (ex: 3d10+4)"
@@ -263,7 +416,6 @@ oninput="ataques[${i}].desc=this.value"></textarea>
 })
 
 }
-
 
 function addHabilidade(){
 
@@ -299,7 +451,6 @@ oninput="habilidades[${i}].desc=this.value"></textarea>
 
 }
 
-
 function salvar(){
 
 const slot=document.getElementById("slot").value
@@ -308,25 +459,34 @@ const dados={
 
 nome:nome.value,
 tipo:tipo.value,
-vd:vd.value,
+nivel:nivel.value,
 descricao:descricao.value,
 vida:vida.value,
+sanidade:sanidade.value,
 rd:rd.value,
-defesa:defesa.value,
-iniciativa:iniciativa.value,
-velocidade:velocidade.value,
-acoes:acoes.value,
+esquiva:esquiva.value,
 ataques:ataques,
-habilidades:habilidades
+habilidades:habilidades,
+atributos:{
+FOR:atr_FOR.value,
+CON:atr_CON.value,
+AGI:atr_AGI.value,
+INT:atr_INT.value,
+POD:atr_POD.value
+},
+pericias:{}
 
 }
+
+periciasLista.forEach((p,i)=>{
+dados.pericias["per_"+i]=document.getElementById("per_"+i).value
+})
 
 localStorage.setItem("inimigo_"+slot,JSON.stringify(dados))
 
 alert("Inimigo salvo!")
 
 }
-
 
 function carregar(){
 
@@ -338,20 +498,29 @@ if(!d)return
 
 nome.value=d.nome
 tipo.value=d.tipo
-vd.value=d.vd
+nivel.value=d.nivel
 descricao.value=d.descricao
 vida.value=d.vida
+sanidade.value=d.sanidade
 rd.value=d.rd
-defesa.value=d.defesa
-iniciativa.value=d.iniciativa
-velocidade.value=d.velocidade
-acoes.value=d.acoes
+
+atr_FOR.value=d.atributos?.FOR||0
+atr_CON.value=d.atributos?.CON||0
+atr_AGI.value=d.atributos?.AGI||0
+atr_INT.value=d.atributos?.INT||0
+atr_POD.value=d.atributos?.POD||0
+
+periciasLista.forEach((p,i)=>{
+document.getElementById("per_"+i).value=d.pericias?.["per_"+i]||1
+})
 
 ataques=d.ataques||[]
 habilidades=d.habilidades||[]
 
 renderAtaques()
 renderHabilidades()
+
+recalcularStatus()
 
 }
 
@@ -373,6 +542,8 @@ pdf.save("inimigo.pdf")
 
 }
 
+criarPericias()
+recalcularStatus()
 carregar()
 
 </script>
