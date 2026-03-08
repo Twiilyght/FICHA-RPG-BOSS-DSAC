@@ -349,14 +349,11 @@ document.getElementById("res_"+i).innerText=
 function recalcularStatus(){
 
 const nivel=parseInt(document.getElementById("nivel").value)||1
-const con=parseInt(document.getElementById("atr_CON").value)||0
 const intt=parseInt(document.getElementById("atr_INT").value)||0
 const agi=parseInt(document.getElementById("atr_AGI").value)||0
 
-const vidaMax=(20+con*2)*nivel
 const sanMax=(20+intt*2)*nivel
 
-document.getElementById("vida").value=vidaMax
 document.getElementById("sanidade").value=sanMax
 document.getElementById("esquiva").value=10+agi
 
@@ -372,7 +369,7 @@ nome:nome.value,
 tipo:tipo.value,
 nivel:nivel.value,
 descricao:descricao.value,
-vida:vida.value,
+vida:parseInt(vida.value)||0,
 sanidade:sanidade.value,
 rd:rd.value,
 esquiva:esquiva.value,
@@ -421,6 +418,8 @@ renderAtaques()
 
 recalcularStatus()
 
+if(d.vida!==undefined){
+vida.value=d.vida
 }
 
 document.getElementById("slot").addEventListener("change",carregar)
