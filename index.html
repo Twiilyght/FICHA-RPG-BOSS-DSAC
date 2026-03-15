@@ -173,6 +173,15 @@ color:#9be7ff;
 <h2>Atributos</h2>
 
 <div class="status-grid">
+<div class="status-box">
+<label>Iniciativa (auto)</label>
+<input id="iniciativa" disabled>
+</div>
+
+<div class="status-box">
+<label>Ataque (auto)</label>
+<input id="ataqueAuto" disabled>
+</div>
 
 <div class="status-box">
 <label>FOR</label>
@@ -359,16 +368,27 @@ function recalcularStatus(){
 const con=parseInt(document.getElementById("atr_CON").value)||0
 const intt=parseInt(document.getElementById("atr_INT").value)||0
 const agi=parseInt(document.getElementById("atr_AGI").value)||0
+const nivel=parseInt(document.getElementById("nivel").value)||1
 
+// Esquiva
 document.getElementById("esquiva").value=10+agi
+
+// Deslocamento
 document.getElementById("deslocamento").value=5+agi
 
-}
+// Iniciativa automática por nível
+let iniciativa = nivel * 10
+if(iniciativa > 30) iniciativa = 30
 
-function nivelInput(){
-return document.getElementById("nivel")
-}
+document.getElementById("iniciativa").value = iniciativa
 
+// Ataque automático
+let ataque=15+(nivel-1)*5
+if(ataque>35) ataque=35
+
+document.getElementById("ataqueAuto").value=ataque
+
+}
 // --- Ataques ---
 function addAtaque(){
 ataques.push({nome:"",ataque:"",dano:"",desc:""})
