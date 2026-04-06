@@ -358,15 +358,17 @@ function recalcularStatus(){
     const agi=parseInt(document.getElementById("atr_AGI").value)||0
     const nivel=parseInt(document.getElementById("nivel").value)||1
 
-    document.getElementById("esquiva").value=10+agi
+    document.getElementById("esquiva").value=12+agi
     document.getElementById("deslocamento").value=5+agi
 
     let iniciativa = nivel * 10
-    if(iniciativa > 30) iniciativa = 30
+    if(iniciativa>40) iniciativa=40
+    if(iniciativa<0) iniciativa=10
     document.getElementById("iniciativa").value = iniciativa
 
     let ataque=15+(nivel-1)*5
-    if(ataque>35) ataque=35
+    if(ataque>40) ataque=40
+    if(ataque<0) ataque=15
     document.getElementById("ataqueAuto").value=ataque
 }
 
