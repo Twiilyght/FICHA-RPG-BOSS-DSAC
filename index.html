@@ -9,106 +9,207 @@
 
 <style>
 
-body{
-background:#050508;
-color:#d1d1d1;
-font-family:Arial;
+:root {
+    --bg-deep: #050508;
+    --bg-block: #111116;
+    --bg-input: #08080c;
+    --primary: #ff4d4d;
+    --accent: #6366f1;  
+    --border: #2a2a34;
+    --text: #d1d1d1;
+    --gold: #facc15;
 }
 
-.bloco{
-background:#111116;
-border:1px solid #2a2a34;
-padding:20px;
-border-radius:12px;
-margin:20px auto;
-max-width:900px;
+body {
+    background: var(--bg-deep);
+    color: var(--text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
-h2{
-margin-top:0;
-color:#ff4d4d;
-border-bottom:1px solid #2a2a34;
-padding-bottom:6px;
+#ficha {
+    width: 100%;
+    max-width: 900px;
 }
 
-input,select,textarea{
-background:#08080c;
-border:1px solid #2a2a34;
-color:#e5e5e5;
-border-radius:8px;
-padding:8px;
-width:100%;
+.bloco {
+    background: var(--bg-block);
+    border: 1px solid var(--border);
+    padding: 25px;
+    border-radius: 14px;
+    margin-bottom: 25px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    transition: transform 0.2s;
 }
 
-.linha{
-margin:10px 0;
-display:flex;
-flex-direction:column;
+h2 {
+    margin-top: 0;
+    color: var(--primary);
+    font-size: 1.4rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
-.status-grid{
-display:grid;
-grid-template-columns:1fr 1fr;
-gap:10px;
+h2::before {
+    content: '◈';
+    font-size: 1rem;
 }
 
-.status-box{
-background:#08080c;
-padding:10px;
-border-radius:8px;
-border:1px solid #2a2a34;
+label {
+    font-size: 13px;
+    font-weight: bold;
+    color: #888;
+    margin-bottom: 5px;
+    text-transform: uppercase;
 }
 
-button{
-background:#8b0000;
-border:none;
-color:white;
-padding:10px 20px;
-border-radius:8px;
-cursor:pointer;
-font-weight:bold;
+input, select, textarea {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: #fff;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 15px;
+    transition: all 0.3s;
 }
 
-button:hover{
-background:#b30000;
+input:focus, textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 8px rgba(255, 77, 77, 0.3);
 }
 
-.ataque{
-border:1px solid #2a2a34;
-padding:10px;
-border-radius:8px;
-margin:10px 0;
+.linha {
+    margin: 15px 0;
+    display: flex;
+    flex-direction: column;
 }
 
-.tituloSec{
-color:#ff6b6b;
-margin-bottom:6px;
+/* GRIDS */
+.status-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 15px;
 }
 
-.pericia{
-display:grid;
-grid-template-columns:1fr 80px 40px 200px;
-gap:10px;
-align-items:center;
-margin:5px 0;
+.status-box {
+    background: var(--bg-input);
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
 }
 
-.dice{
-cursor:pointer;
-font-size:20px;
-text-align:center;
-transition: all 0.3s ease;
+.status-box label {
+    font-size: 11px;
 }
 
-.dice:hover{
-color:#00ffff;
-text-shadow: 0 0 8px #00ffff, 0 0 12px #00ffff;
+.status-box input:disabled {
+    color: var(--gold);
+    font-weight: bold;
+    font-size: 18px;
+    border: none;
+    background: transparent;
+    cursor: default;
 }
 
-.resultado{
-font-size:12px;
-color:#9be7ff;
+.pericia {
+    display: grid;
+    grid-template-columns: 1fr 100px 40px 1fr;
+    gap: 15px;
+    align-items: center;
+    padding: 8px;
+    border-bottom: 1px solid #1e1e26;
 }
+
+.pericia:hover {
+    background: rgba(255, 255, 255, 0.02);
+}
+
+/* ATAQUES */
+.ataque {
+    background: rgba(255, 0, 0, 0.03);
+    border: 1px solid #3e1a1a;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px 0;
+    position: relative;
+}
+
+.tituloSec {
+    color: var(--primary);
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+button {
+    background: #2a2a34;
+    border: 1px solid #3f3f4e;
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+    text-transform: uppercase;
+    font-size: 12px;
+}
+
+button:hover {
+    background: #3f3f4e;
+    transform: translateY(-2px);
+}
+
+button[onclick*="salvar"], button[onclick*="addAtaque"] {
+    background: #8b0000;
+    border-color: #ff4d4d;
+}
+
+button[onclick*="salvar"]:hover {
+    background: #b30000;
+    box-shadow: 0 0 15px rgba(255, 77, 77, 0.4);
+}
+
+.dice {
+    cursor: pointer;
+    font-size: 24px;
+    transition: transform 0.2s;
+    user-select: none;
+}
+
+.dice:hover {
+    transform: scale(1.2) rotate(15deg);
+    filter: drop-shadow(0 0 5px var(--gold));
+}
+
+.resultado {
+    font-size: 13px;
+    color: var(--gold);
+    font-style: italic;
+    font-weight: bold;
+}
+
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: var(--primary); }
 
 </style>
 </head>
@@ -117,170 +218,96 @@ color:#9be7ff;
 
 <div id="ficha">
 
-<div class="bloco">
-<h2>Slot de Inimigo</h2>
+    <div class="bloco" style="border-left: 5px solid var(--gold);">
+        <h2>Slot de Inimigo</h2>
+        <select id="slot" style="font-size: 18px; font-weight: bold; color: var(--gold);">
+            <option value="1">Slot 1</option>
+            <option value="2">Slot 2</option>
+            <option value="3">Slot 3</option>
+            <option value="4">Slot 4</option>
+            <option value="5">Slot 5</option>
+            <option value="6">Slot 6</option>
+            <option value="7">Slot 7</option>
+            <option value="8">Slot 8</option>
+            <option value="9">Slot 9</option>
+            <option value="10">Slot 10</option>
+        </select>
+    </div>
 
-<select id="slot">
-<option value="1">Slot 1</option>
-<option value="2">Slot 2</option>
-<option value="3">Slot 3</option>
-<option value="4">Slot 4</option>
-<option value="5">Slot 5</option>
-<option value="6">Slot 6</option>
-<option value="7">Slot 7</option>
-<option value="8">Slot 8</option>
-<option value="9">Slot 9</option>
-<option value="10">Slot 10</option>
-</select>
+    <div class="bloco">
+        <h2>Informações do Inimigo</h2>
+        <div style="display: grid; grid-template-columns: 2fr 1fr 100px; gap: 15px;">
+            <div class="linha">
+                <label>Nome do Inimigo</label>
+                <input id="nome" placeholder="Ex: Carniçal das Sombras">
+            </div>
+            <div class="linha">
+                <label>Tipo</label>
+                <select id="tipo">
+                    <option>Monstro</option>
+                    <option>Humano</option>
+                    <option>Aberração</option>
+                    <option>Boss</option>
+                </select>
+            </div>
+            <div class="linha">
+                <label>Nível</label>
+                <input type="number" id="nivel" value="1" onchange="recalcularStatus()">
+            </div>
+        </div>
+        <div class="linha">
+            <label>Descrição e Comportamento</label>
+            <textarea id="descricao" rows="3" placeholder="Como ele age em combate?"></textarea>
+        </div>
+    </div>
 
-</div>
+    <div class="bloco">
+        <h2>Atributos</h2>
+        <div class="status-grid">
+            <div class="status-box"><label>FOR</label><input type="number" id="atr_FOR" value="0"></div>
+            <div class="status-box"><label>CON</label><input type="number" id="atr_CON" value="0" onchange="recalcularStatus()"></div>
+            <div class="status-box"><label>AGI</label><input type="number" id="atr_AGI" value="0" onchange="recalcularStatus()"></div>
+            <div class="status-box"><label>INT</label><input type="number" id="atr_INT" value="0" onchange="recalcularStatus()"></div>
+            <div class="status-box"><label>POD</label><input type="number" id="atr_POD" value="0"></div>
+        </div>
+        
+        <div class="status-grid" style="margin-top: 20px; border-top: 1px solid var(--border); padding-top: 20px;">
+            <div class="status-box"><label>Iniciativa (auto)</label><input id="iniciativa" disabled></div>
+            <div class="status-box"><label>Ataque Base (auto)</label><input id="ataqueAuto" disabled></div>
+        </div>
+    </div>
 
+    <div class="bloco">
+        <h2>Perícias</h2>
+        <div id="pericias"></div>
+    </div>
 
-<div class="bloco">
+    <div class="bloco">
+        <h2>Status Vitais</h2>
+        <div class="status-grid">
+            <div class="status-box" style="border-color: #ef4444;"><label>Vida</label><input id="vida" type="number" style="color: #ef4444; font-size: 20px; font-weight: bold;"></div>
+            <div class="status-box" style="border-color: #3b82f6;"><label>Sanidade</label><input id="sanidade" type="number" style="color: #3b82f6;"></div>
+            <div class="status-box"><label>RD (Defesa)</label><input id="rd" type="number"></div>
+            <div class="status-box"><label>Esquiva</label><input id="esquiva" disabled></div>
+            <div class="status-box"><label>Deslocamento</label><input id="deslocamento" disabled></div>
+        </div>
+    </div>
 
-<h2>Informações do Inimigo</h2>
+    <div class="bloco">
+        <h2>Ações de Ataque</h2>
+        <div id="ataques"></div>
+        <button onclick="addAtaque()" style="width: 100%; margin-top: 10px;">+ Adicionar Nova Ação de Ataque</button>
+    </div>
 
-<div class="linha">
-<label>Nome</label>
-<input id="nome">
-</div>
-
-<div class="linha">
-<label>Tipo</label>
-<select id="tipo">
-<option>Monstro</option>
-<option>Humano</option>
-<option>Aberração</option>
-<option>Boss</option>
-</select>
-</div>
-
-<div class="linha">
-<label>Nível</label>
-<input type="number" id="nivel" value="1" onchange="recalcularStatus()">
-</div>
-
-<div class="linha">
-<label>Descrição</label>
-<textarea id="descricao"></textarea>
-</div>
-
-</div>
-
-
-<div class="bloco">
-
-<h2>Atributos</h2>
-
-<div class="status-grid">
-<div class="status-box">
-<label>Iniciativa (auto)</label>
-<input id="iniciativa" disabled>
-</div>
-
-<div class="status-box">
-<label>Ataque (auto)</label>
-<input id="ataqueAuto" disabled>
-</div>
-
-<div class="status-box">
-<label>FOR</label>
-<input type="number" id="atr_FOR" value="0">
-</div>
-
-<div class="status-box">
-<label>CON</label>
-<input type="number" id="atr_CON" value="0" onchange="recalcularStatus()">
-</div>
-
-<div class="status-box">
-<label>AGI</label>
-<input type="number" id="atr_AGI" value="0" onchange="recalcularStatus()">
-</div>
-
-<div class="status-box">
-<label>INT</label>
-<input type="number" id="atr_INT" value="0" onchange="recalcularStatus()">
-</div>
-
-<div class="status-box">
-<label>POD</label>
-<input type="number" id="atr_POD" value="0">
-</div>
+    <div class="bloco btn-group">
+        <button onclick="salvar()" style="flex: 2;">💾 Salvar no Banco de Dados</button>
+        <button onclick="gerarPDF()" style="flex: 1;">📄 Exportar Ficha (PDF)</button>
+    </div>
 
 </div>
-
-</div>
-
-
-<div class="bloco">
-
-<h2>Perícias</h2>
-
-<div id="pericias"></div>
-
-</div>
-
-
-<div class="bloco">
-
-<h2>Status</h2>
-
-<div class="status-grid">
-
-<div class="status-box">
-<label>Vida</label>
-<input id="vida" type="number">
-</div>
-
-<div class="status-box">
-<label>Sanidade</label>
-<input id="sanidade" type="number">
-</div>
-
-<div class="status-box">
-<label>RD</label>
-<input id="rd" type="number">
-</div>
-
-<div class="status-box">
-<label>Esquiva (auto)</label>
-<input id="esquiva" disabled>
-</div>
-
-<div class="status-box">
-<label>Deslocamento (quadrados)</label>
-<input id="deslocamento" disabled>
-</div>
-
-</div>
-
-</div>
-
-
-<div class="bloco">
-
-<h2>Ataques</h2>
-
-<div id="ataques"></div>
-
-<button onclick="addAtaque()">Adicionar Ataque</button>
-
-</div>
-
-
-<div class="bloco">
-
-<button onclick="salvar()">Salvar Inimigo</button>
-<button onclick="gerarPDF()">Exportar PDF</button>
-
-</div>
-
-</div>
-
 
 <script>
-
+  
 const periciasLista=[
 "Luta","Fortitude","Reflexos","Furtividade",
 "Iniciativa","Pontaria","Enganação","Percepção","Vontade"
@@ -289,262 +316,172 @@ const periciasLista=[
 let ataques=[]
 
 function criarPericias(){
-
-const box=document.getElementById("pericias")
-
-periciasLista.forEach((p,i)=>{
-
-box.innerHTML+=`
-
-<div class="pericia">
-
-<div>${p}</div>
-
-<select id="per_${i}">
-${[...Array(10).keys()].map(v=>`<option>${v+1}</option>`).join("")}
-</select>
-
-<span class="dice" onclick="rolarPericia(${i})">🎲</span>
-
-<span id="res_${i}" class="resultado"></span>
-
-</div>
-
-`
-
-})
-
+    const box=document.getElementById("pericias")
+    box.innerHTML = "" // Limpar para evitar duplicatas
+    periciasLista.forEach((p,i)=>{
+        box.innerHTML+=`
+        <div class="pericia">
+            <div style="font-weight: bold; color: #aaa;">${p}</div>
+            <select id="per_${i}">
+                ${[...Array(10).keys()].map(v=>`<option>${v+1}</option>`).join("")}
+            </select>
+            <span class="dice" onclick="rolarPericia(${i})">🎲</span>
+            <span id="res_${i}" class="resultado"></span>
+        </div>`
+    })
 }
 
-function d20(){
-return Math.floor(Math.random()*20)+1
-}
+function d20(){ return Math.floor(Math.random()*20)+1 }
 
 function rolarPericia(i){
-
-const qtd=parseInt(document.getElementById("per_"+i).value)
-
-const resultados=[]
-let maior=0
-
-for(let x=0;x<qtd;x++){
-const r=d20()
-resultados.push(r)
-if(r>maior)maior=r
-}
-
-const atributo=getAtributoPericia(i)
-
-const bonus=parseInt(document.getElementById("atr_"+atributo).value)||0
-
-const total=maior+bonus
-
-document.getElementById("res_"+i).innerText=
-`${qtd}d20 [${resultados.join(",")}] → ${maior}+${bonus}=${total}`
-
+    const qtd=parseInt(document.getElementById("per_"+i).value)
+    const resultados=[]
+    let maior=0
+    for(let x=0;x<qtd;x++){
+        const r=d20()
+        resultados.push(r)
+        if(r>maior)maior=r
+    }
+    const atributo=getAtributoPericia(i)
+    const bonus=parseInt(document.getElementById("atr_"+atributo).value)||0
+    const total=maior+bonus
+    document.getElementById("res_"+i).innerText = `[${resultados.join(",")}] ➔ ${total}`
 }
 
 function getAtributoPericia(i){
-
-const mapa={
-0:"FOR",
-1:"CON",
-2:"AGI",
-3:"AGI",
-4:"AGI",
-5:"AGI",
-6:"INT",
-7:"INT",
-8:"POD"
+    const mapa={0:"FOR", 1:"CON", 2:"AGI", 3:"AGI", 4:"AGI", 5:"AGI", 6:"INT", 7:"INT", 8:"POD"}
+    return mapa[i]
 }
 
-return mapa[i]
-
-}
-
-// --- Status agora com deslocamento ---
 function recalcularStatus(){
+    const con=parseInt(document.getElementById("atr_CON").value)||0
+    const agi=parseInt(document.getElementById("atr_AGI").value)||0
+    const nivel=parseInt(document.getElementById("nivel").value)||1
 
-const con=parseInt(document.getElementById("atr_CON").value)||0
-const intt=parseInt(document.getElementById("atr_INT").value)||0
-const agi=parseInt(document.getElementById("atr_AGI").value)||0
-const nivel=parseInt(document.getElementById("nivel").value)||1
+    document.getElementById("esquiva").value=10+agi
+    document.getElementById("deslocamento").value=5+agi
 
-// Esquiva
-document.getElementById("esquiva").value=10+agi
+    let iniciativa = nivel * 10
+    if(iniciativa > 30) iniciativa = 30
+    document.getElementById("iniciativa").value = iniciativa
 
-// Deslocamento
-document.getElementById("deslocamento").value=5+agi
-
-// Iniciativa automática por nível
-let iniciativa = nivel * 10
-if(iniciativa > 30) iniciativa = 30
-
-document.getElementById("iniciativa").value = iniciativa
-
-// Ataque automático
-let ataque=15+(nivel-1)*5
-if(ataque>35) ataque=35
-
-document.getElementById("ataqueAuto").value=ataque
-
+    let ataque=15+(nivel-1)*5
+    if(ataque>35) ataque=35
+    document.getElementById("ataqueAuto").value=ataque
 }
-// --- Ataques ---
+
 function addAtaque(){
-ataques.push({nome:"",ataque:"",dano:"",desc:""})
-renderAtaques()
+    ataques.push({nome:"",ataque:"",dano:"",desc:""})
+    renderAtaques()
 }
 
 function renderAtaques(){
-
-const box=document.getElementById("ataques")
-box.innerHTML=""
-
-ataques.forEach((a,i)=>{
-
-box.innerHTML+=`
-<div class="ataque">
-
-<div class="tituloSec">Ataque ${i+1}</div>
-
-<input placeholder="Nome" oninput="ataques[${i}].nome=this.value" value="${a.nome}">
-<input placeholder="Rolagem (ex: 2d20+6)" oninput="ataques[${i}].ataque=this.value" value="${a.ataque}">
-<input placeholder="Dano (ex: 3d10+4)" oninput="ataques[${i}].dano=this.value" value="${a.dano}">
-
-<span class="dice" title="Rolar Dano" onclick="document.getElementById('res_ataque_${i}').innerText=rolarDano(ataques[${i}].dano)">🎲</span>
-<span id="res_ataque_${i}" class="resultado"></span>
-
-<textarea placeholder="Descrição" oninput="ataques[${i}].desc=this.value">${a.desc}</textarea>
-
-<button onclick="excluirAtaque(${i})" style="background:#555;margin-top:5px;">❌ Excluir</button>
-
-</div>
-`
-
-})
-
-recalcularStatus()
+    const box=document.getElementById("ataques")
+    box.innerHTML=""
+    ataques.forEach((a,i)=>{
+        box.innerHTML+=`
+        <div class="ataque">
+            <div class="tituloSec">AÇÃO DE COMBATE ${i+1}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                <input placeholder="Nome da Arma/Poder" oninput="ataques[${i}].nome=this.value" value="${a.nome}">
+                <input placeholder="Teste (ex: 2d20+6)" oninput="ataques[${i}].ataque=this.value" value="${a.ataque}">
+                <input placeholder="Dano (ex: 3d10+4)" oninput="ataques[${i}].dano=this.value" value="${a.dano}">
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+                <span class="dice" title="Rolar Dano" onclick="document.getElementById('res_ataque_${i}').innerText=rolarDano(ataques[${i}].dano)">🎲</span>
+                <span id="res_ataque_${i}" class="resultado"></span>
+            </div>
+            <textarea placeholder="Efeitos especiais do ataque..." style="margin-top:10px" oninput="ataques[${i}].desc=this.value">${a.desc}</textarea>
+            <button onclick="excluirAtaque(${i})" style="background:#441111; margin-top:10px; width: 100px;">EXCLUIR</button>
+        </div>`
+    })
+    recalcularStatus()
 }
 
 function rolarDano(danoStr){
-  const regex=/(\d+)d(\d+)([+-]\d+)?/i
-  const match=danoStr.match(regex)
-  if(!match) return danoStr
-
-  const n=parseInt(match[1])
-  const m=parseInt(match[2])
-  const bonus=parseInt(match[3]||0)
-
-  let resultados=[]
-  let total=0
-  for(let i=0;i<n;i++){
-    const r=d20Custom(m)
-    resultados.push(r)
-    total+=r
-  }
-
-  total+=bonus
-
-  return `${n}d${m}${bonus>=0?'+':''}${bonus} [${resultados.join(',')}] → ${total}`
-}
-
-function d20Custom(max){
-  return Math.floor(Math.random()*max)+1
+    const regex=/(\d+)d(\d+)([+-]\d+)?/i
+    const match=danoStr.match(regex)
+    if(!match) return "Formato inválido"
+    const n=parseInt(match[1]), m=parseInt(match[2]), bonus=parseInt(match[3]||0)
+    let resultados=[], total=0
+    for(let i=0;i<n;i++){
+        const r=Math.floor(Math.random()*m)+1
+        resultados.push(r)
+        total+=r
+    }
+    total+=bonus
+    return `[${resultados.join('+')}]${bonus>=0?'+':''}${bonus} = ${total}`
 }
 
 function excluirAtaque(i){
-ataques.splice(i,1)
-renderAtaques()
+    ataques.splice(i,1)
+    renderAtaques()
 }
 
-// --- Salvar e carregar ---
 function salvar(){
-
-const slot=document.getElementById("slot").value
-
-const dados={
-
-nome:nome.value,
-tipo:tipo.value,
-nivel:nivel.value,
-descricao:descricao.value,
-vida:vida.value,
-sanidade:sanidade.value,
-rd:rd.value,
-esquiva:esquiva.value,
-ataques:ataques,
-atributos:{
-FOR:atr_FOR.value,
-CON:atr_CON.value,
-AGI:atr_AGI.value,
-INT:atr_INT.value,
-POD:atr_POD.value
-},
-pericias:{}
-
-}
-
-periciasLista.forEach((p,i)=>{
-dados.pericias["per_"+i]=document.getElementById("per_"+i).value
-})
-
-localStorage.setItem("inimigo_"+slot,JSON.stringify(dados))
-
-alert("Inimigo salvo!")
-
+    const slot=document.getElementById("slot").value
+    const dados={
+        nome: document.getElementById("nome").value,
+        tipo: document.getElementById("tipo").value,
+        nivel: document.getElementById("nivel").value,
+        descricao: document.getElementById("descricao").value,
+        vida: document.getElementById("vida").value,
+        sanidade: document.getElementById("sanidade").value,
+        rd: document.getElementById("rd").value,
+        esquiva: document.getElementById("esquiva").value,
+        ataques: ataques,
+        atributos:{
+            FOR: document.getElementById("atr_FOR").value,
+            CON: document.getElementById("atr_CON").value,
+            AGI: document.getElementById("atr_AGI").value,
+            INT: document.getElementById("atr_INT").value,
+            POD: document.getElementById("atr_POD").value
+        },
+        pericias:{}
+    }
+    periciasLista.forEach((p,i)=>{
+        dados.pericias["per_"+i]=document.getElementById("per_"+i).value
+    })
+    localStorage.setItem("inimigo_"+slot,JSON.stringify(dados))
+    alert("Inimigo guardado no Bestiário!")
 }
 
 function carregar(){
-
-const slot=document.getElementById("slot").value
-
-const d=JSON.parse(localStorage.getItem("inimigo_"+slot))
-
-if(!d)return
-
-nome.value=d.nome
-tipo.value=d.tipo
-nivel.value=d.nivel
-descricao.value=d.descricao
-vida.value=d.vida
-sanidade.value=d.sanidade
-rd.value=d.rd
-
-atr_FOR.value=d.atributos?.FOR||0
-atr_CON.value=d.atributos?.CON||0
-atr_AGI.value=d.atributos?.AGI||0
-atr_INT.value=d.atributos?.INT||0
-atr_POD.value=d.atributos?.POD||0
-
-periciasLista.forEach((p,i)=>{
-document.getElementById("per_"+i).value=d.pericias?.["per_"+i]||1
-})
-
-ataques=d.ataques||[]
-
-renderAtaques()
-recalcularStatus()
-
+    const slot=document.getElementById("slot").value
+    const d=JSON.parse(localStorage.getItem("inimigo_"+slot))
+    if(!d) return
+    document.getElementById("nome").value=d.nome || ""
+    document.getElementById("tipo").value=d.tipo || "Monstro"
+    document.getElementById("nivel").value=d.nivel || 1
+    document.getElementById("descricao").value=d.descricao || ""
+    document.getElementById("vida").value=d.vida || 0
+    document.getElementById("sanidade").value=d.sanidade || 0
+    document.getElementById("rd").value=d.rd || 0
+    document.getElementById("atr_FOR").value=d.atributos?.FOR||0
+    document.getElementById("atr_CON").value=d.atributos?.CON||0
+    document.getElementById("atr_AGI").value=d.atributos?.AGI||0
+    document.getElementById("atr_INT").value=d.atributos?.INT||0
+    document.getElementById("atr_POD").value=d.atributos?.POD||0
+    periciasLista.forEach((p,i)=>{
+        document.getElementById("per_"+i).value=d.pericias?.["per_"+i]||1
+    })
+    ataques=d.ataques||[]
+    renderAtaques()
+    recalcularStatus()
 }
 
 document.getElementById("slot").addEventListener("change",carregar)
 
 async function gerarPDF(){
-
-const {jsPDF}=window.jspdf
-
-const canvas=await html2canvas(document.getElementById("ficha"))
-
-const img=canvas.toDataURL("image/png")
-
-const pdf=new jsPDF()
-
-pdf.addImage(img,"PNG",5,5,200,280)
-
-pdf.save("inimigo.pdf")
-
+    const {jsPDF}=window.jspdf
+    const canvas=await html2canvas(document.getElementById("ficha"))
+    const img=canvas.toDataURL("image/png")
+    const pdf=new jsPDF()
+    pdf.addImage(img,"PNG",5,5,200,280)
+    pdf.save(`Inimigo_${document.getElementById("nome").value || 'SemNome'}.pdf`)
 }
 
+// Inicialização
 criarPericias()
 recalcularStatus()
 carregar()
