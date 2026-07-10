@@ -1393,6 +1393,13 @@
 
   <h1>Ficha RPG</h1>
 
+<div class="bloco-campanha" style="margin-top: 20px; border-top: 1px solid var(--cor-dourado); padding-top: 10px;">
+    <h3>Configurações de Campanha</h3>
+    <input type="text" id="idCampanha" placeholder="Código da Campanha (ex: mesa123)" style="width: 100%; padding: 5px;">
+    <button class="salvar-btn" onclick="entrarNaCampanha()" style="width: 100%; margin-top: 5px;">Entrar na Campanha</button>
+    <div id="listaJogadores" style="margin-top: 10px; color: var(--cor-dourado); font-size: 0.9rem;"></div>
+</div>
+
 <div id="authContainer" style="text-align: center; margin-bottom: 20px;">
     <button id="btnLogin" class="salvar-btn" onclick="loginGoogle()">Entrar com Google</button>
     <div id="userInfo" style="display:none; color: var(--cor-dourado); font-weight: bold; text-shadow: 0 0 5px var(--cor-dourado-transp);">
@@ -1721,6 +1728,54 @@ let logRolagens = [];
 // Variável global para sabermos qual habilidade está sendo editada no momento
 let indiceHabConfig = null;
 
+let campanhaAtual = "";
+
+function entrarNaCampanha() {
+    campanhaAtual = document.getElementById("idCampanha").value;
+    if (!campanhaAtual) return alert("Digite um código!");
+    
+    alert("Você entrou na campanha: " + campanhaAtual);
+    
+    // Se for o Mestre, ele começa a observar os jogadores
+    monitorarCampanha(campanhaAtual);
+}
+
+// Modifique sua função salvarFicha existente para incluir isso:
+function salvarFichaNaCampanha(dados) {
+    if (campanhaAtual) {
+        // Salva na pasta da campanha
+        database.ref('campanhas/' + campanhaAtual + '/jogadores/' + usuarioAtual.uid).set(dados);
+    }
+}
+
+function monitorarCampanha(id) {
+    const listaDiv = document.getElementById("listaJogadores");
+    listaDiv.innerHTML = "Observando campanha...";
+
+    // Observa a lista de jogadores da campanha
+    database.ref('campanhas/' + id + '/jogadores').on('value', (snapshot) => {
+        listaDiv.innerHTML = "<strong>Jogadores Conectados:</strong><br>";
+        
+        snapshot.forEach((childSnapshot) => {
+            const dadosJogador = childSnapshot.val();
+            const btn = document.createElement("button");
+            btn.innerText = "Ver Ficha de " + dadosJogador.nome;
+            btn.style.display = "block";
+            btn.style.width = "100%";
+            btn.onclick = () => carregarFichaDeOutro(dadosJogador);
+            listaDiv.appendChild(btn);
+        });
+    });
+}
+
+function carregarFichaDeOutro(dados) {
+    // Aqui você preenche os campos do HTML com os dados que vieram do jogador
+    document.getElementById("nome").value = dados.nome;
+    document.getElementById("vida").value = dados.vida;
+    // ... repita para os outros campos ...
+    alert("Ficha de " + dados.nome + " carregada no painel!");
+}
+
 function abrirModalConfig(index) {
   indiceHabConfig = index;
   const h = habilidades[index];
@@ -1899,34 +1954,46 @@ auth.onAuthStateChanged(user => {
   }
 });
   
-function atualizarLog(){
+function atualizarLog() {
   const box = document.getElementById("logRolagens");
+  if (!box) return; // Segurança caso o elemento não exista
+  
   let htmlString = ""; 
 
-  // Pegamos o nome atual digitado na ficha para saber quem está lendo
+  // Pegamos o nome atual para comparar e verificar se é o dono da rolagem
   const meuNome = document.getElementById("jogador").value.trim();
-  // Defina aqui a palavra-chave que identifica o Mestre (ex: "Mestre", "Admin", etc)
-  const isMestre = meuNome.toLowerCase() === "mestre"; 
+  
+  // A variável 'ehMestre' deve ser definida globalmente no seu script
+  // (ex: quando o Mestre logar ou entrar na campanha, você define: let ehMestre = true;)
+  // Se ela não existir, fazemos uma verificação de fallback pelo nome
+  const isMestre = (typeof ehMestre !== 'undefined' && ehMestre) || (meuNome.toLowerCase() === "mestre"); 
 
   logRolagens.slice().reverse().forEach(l => {
-    // Regra: Pode ver se não for privado, OU se for o Mestre, OU se foi o próprio jogador que rolou
+    // LÓGICA DE VISIBILIDADE:
+    // 1. Se não for privado, todos veem.
+    // 2. Se for privado, só vê quem é o dono (l.nome) OU se for o Mestre.
     const podeVer = !l.privado || isMestre || l.nome === meuNome;
 
     if (podeVer) {
+      // Estilo visual para as rolagens
+      const borda = l.privado ? '3px solid #bb33cc' : '3px solid #c5a059';
+      const opacidade = l.privado ? '0.9' : '1';
+
       htmlString += `
-        <div class="log-item" style="${l.privado ? 'border-left: 3px solid #551a8b;' : ''}">
-          <span class="log-nome">${l.nome}</span> ${l.privado ? '<span style="font-size:10px; color:#bb33cc;">(Privado)</span>' : ''}
+        <div class="log-item" style="border-left: ${borda}; opacity: ${opacidade}; margin-bottom: 8px; padding: 5px; background: rgba(0,0,0,0.2);">
+          <span class="log-nome" style="font-weight:bold; color:#c5a059;">${l.nome}</span> 
+          ${l.privado ? '<span style="font-size:10px; color:#bb33cc;">(Privado)</span>' : ''}
           → ${l.tipo} <br>
-          ${l.detalhe} = <span class="log-valor">${l.total}</span>
-          <div style="font-size:11px; opacity:0.6">${l.hora}</div>
+          <span style="font-size: 14px;">${l.detalhe} = <span class="log-valor" style="color:#fff; font-weight:bold;">${l.total}</span></span>
+          <div style="font-size:10px; opacity:0.5; margin-top:4px;">${l.hora}</div>
         </div>
       `;
     } else {
-      // Se não pode ver, renderiza uma mensagem misteriosa
+      // O que os jogadores veem quando a rolagem é privada e não é deles
       htmlString += `
-        <div class="log-item" style="border-left: 3px solid #551a8b; opacity: 0.7;">
-          <span class="log-nome">${l.nome}</span> realizou uma rolagem privada... 🔮
-          <div style="font-size:11px; opacity:0.6">${l.hora}</div>
+        <div class="log-item" style="border-left: 3px solid #551a8b; opacity: 0.6; margin-bottom: 8px; padding: 5px; font-style: italic;">
+          <span class="log-nome">${l.nome}</span> realizou uma rolagem oculta... 🔮
+          <div style="font-size:10px; opacity:0.4;">${l.hora}</div>
         </div>
       `;
     }
