@@ -1710,16 +1710,6 @@
 
   const database = firebase.database();
 
-  const rolagensRef = database.ref('rolagens');
-  rolagensRef.on('child_added', (snapshot) => {
-    const novaRolagem = snapshot.val();
-    logRolagens.push(novaRolagem);
-    if(logRolagens.length > 20) {
-      logRolagens.shift();
-    }
-    atualizarLog();
-  });
-
 </script>
   
 <script>
@@ -1870,7 +1860,9 @@ function logoutGoogle() {
   auth.signOut();
 }
 
-// Observador de estado de login (Ouve quando o usuário entra ou sai)
+let escutaRolagensAtiva = false; // Controle para não duplicar rolagens
+
+// Observador de estado de login
 auth.onAuthStateChanged(user => {
   if (user) {
     usuarioAtual = user;
@@ -1883,6 +1875,20 @@ auth.onAuthStateChanged(user => {
     
     // Tenta carregar a ficha da nuvem
     carregarFichaDaNuvem(); 
+
+    // CARREGA O HISTÓRICO APENAS APÓS O LOGIN (CORREÇÃO AQUI)
+    if (!escutaRolagensAtiva) {
+      database.ref('rolagens').on('child_added', (snapshot) => {
+        const novaRolagem = snapshot.val();
+        logRolagens.push(novaRolagem);
+        if(logRolagens.length > 20) {
+          logRolagens.shift();
+        }
+        atualizarLog();
+      });
+      escutaRolagensAtiva = true;
+    }
+
   } else {
     usuarioAtual = null;
     document.getElementById('btnLogin').style.display = 'inline-block';
@@ -1939,7 +1945,8 @@ function aplicarTema(tema) {
   if (tema && tema !== 'tema-classico') {
     document.body.classList.add(tema);
   }
- database.ref('fichas/' + usuarioAtual.uid).set(dados);
+  // SALVA O TEMA LOCALMENTE (CORREÇÃO AQUI)
+  localStorage.setItem('temaFichaRPG', tema); 
 }
 
 // Atualiza tema ao mudar seletor
