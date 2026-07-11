@@ -1646,7 +1646,7 @@
     <div class="bloco-campanha" style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; margin-bottom: 15px;">
       <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Campanha</h3>
       <input type="text" id="idCampanhaLeft" placeholder="Código (ex: mesa123)" style="width: 100%; box-sizing: border-box; padding: 6px; font-size: 0.9rem;">
-      <button class="salvar-btn" onclick="entrarNaCampanha()" style="width: 100%; margin-top: 8px; padding: 8px; font-size: 0.9rem;">Conectar</button>
+      <button class="salvar-btn" onclick="entrarNaCampanhaJogador()" style="width: 100%; margin-top: 8px; padding: 8px; font-size: 0.9rem;">Conectar</button>
       
       <!-- Aqui é onde as fichas dos outros jogadores vão aparecer -->
       <div id="listaJogadores" style="margin-top: 15px;"></div>
@@ -1673,7 +1673,7 @@
       <!-- Formulário de Entrada -->
       <div id="formCampanha">
         <input type="text" id="idCampanhaRight" placeholder="Código (ex: submundo1)" style="width: 100%; box-sizing: border-box; padding: 8px; font-size: 0.9rem; margin-bottom: 8px;">
-        <button class="salvar-btn" onclick="entrarNaCampanha()" style="width: 100%; margin-top: 0; padding: 8px; font-size: 0.9rem;">Conectar à Mesa</button>
+        <button class="salvar-btn" onclick="entrarNaCampanhaMestre()" style="width: 100%; margin-top: 0; padding: 8px; font-size: 0.9rem;">Conectar à Mesa</button>
       </div>
 
       <!-- Status de Conexão -->
@@ -2023,39 +2023,6 @@ let indiceHabConfig = null;
 let campanhaAtual = "";
 let listenerJogadores = null;
 
-function entrarNaCampanha(inputId) {
-  // Pega o valor baseado no ID passado pelo botão clicado
-  const valorInput = document.getElementById(inputId).value.trim();
-  
-  if (!valorInput) {
-    alert("Por favor, digite o nome da campanha.");
-    return;
-  }
-
-  // Verificação de segurança (O usuário precisa estar logado)
-  const user = firebase.auth().currentUser;
-  if (!user) {
-    alert("Você precisa estar logado para entrar em uma campanha.");
-    return;
-  }
-
-  campanhaAtual = valorInput;
-  console.log("Tentando entrar em:", campanhaAtual); // Útil para depuração
-
-  firebase.database().ref('campanhas/' + campanhaAtual + '/mestre').once('value', snapshot => {
-    // Adicione um console.log aqui para saber se o Firebase está respondendo
-    console.log("Resposta do Firebase:", snapshot.val());
-
-    document.getElementById('statusCampanha').style.display = 'block';
-    document.getElementById('nomeCampanhaTexto').innerText = campanhaAtual;
-
-    // ... restante da sua lógica de mestre/jogador
-  }).catch(error => {
-    console.error("Erro ao conectar:", error);
-    alert("Erro ao conectar na campanha. Verifique o nome.");
-  });
-}
-
 function escutarJogadoresMestre() {
   const refJogadores = firebase.database().ref('campanhas/' + campanhaAtual + '/jogadores');
   
@@ -2111,16 +2078,6 @@ function enviarDadosJogadorFirebase() {
   };
 
   firebase.database().ref(`campanhas/${campanhaAtual}/jogadores/${uidUsuario}`).update(dadosParaMestre);
-}
-
-function sairDaCampanha() {
-    campanhaAtual = "";
-    document.getElementById("formCampanha").style.display = "block";
-    document.getElementById("statusCampanha").style.display = "none";
-    document.getElementById("listaJogadores").innerHTML = "";
-    
-    // Se precisar desligar o listener do Firebase
-    // database.ref('campanhas/').off();
 }
 
 function abrirModalNotas() {
@@ -2266,19 +2223,239 @@ function carregarFichaDeOutro(dados) {
     alert("Ficha de " + dados.nome + " carregada no painel!");
 }
 
-let isRolagemOculta = false;
+let usuarioAtual = null;
+let isMestre = false;
+let rolagemOcultaAtiva = false;
+let listenersAtivos = []; // Para limpar conexões antigas ao trocar de sala
 
+// ==========================================
+// 1. AUTENTICAÇÃO (Mantenha seu provedor Google)
+// ==========================================
+firebase.auth().onAuthStateChanged((user) => {
+  usuarioAtual = user;
+  if (user) {
+    document.getElementById('userInfo').style.display = 'block';
+    document.getElementById('userName').innerText = user.displayName;
+    document.getElementById('btnLogin').style.display = 'none';
+  } else {
+    document.getElementById('userInfo').style.display = 'none';
+    document.getElementById('btnLogin').style.display = 'block';
+  }
+});
+
+// ==========================================
+// 2. SISTEMA DE ROLAGEM OCULTA
+// ==========================================
 function toggleRolagemOculta() {
+  rolagemOcultaAtiva = !rolagemOcultaAtiva;
   const btn = document.getElementById('btnRolagemPrivada');
-  isRolagemOculta = !isRolagemOculta;
-  
-  if (isRolagemOculta) {
+  if (rolagemOcultaAtiva) {
     btn.classList.add('active');
-    btn.innerHTML = '🔒 Rolar Oculto (Privado)';
+    btn.innerHTML = "👁️‍🗨️ Rolar Oculto (Secreto)";
   } else {
     btn.classList.remove('active');
-    btn.innerHTML = '👁️ Rolar Aberto (Público)';
+    btn.innerHTML = "👁️ Rolar Aberto (Público)";
   }
+}
+
+// Chame esta função sempre que um jogador rolar um dado no seu código existente
+function registrarRolagem(resultadoTexto) {
+  if (!campanhaAtual || !usuarioAtual) return; // Só registra no log global se estiver numa mesa
+  
+  const nomeAtivo = document.getElementById('nome').value || document.getElementById('jogador').value || "Desconhecido";
+  
+  const novaRolagem = {
+    uid: usuarioAtual.uid,
+    nome: nomeAtivo,
+    texto: resultadoTexto,
+    oculto: rolagemOcultaAtiva,
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+
+  // Salva no log global da campanha
+  database.ref(`campanhas/${campanhaAtual}/logs`).push(novaRolagem);
+
+  // Se for jogador, atualiza sua "última rolagem" para o escudo do mestre
+  if (!isMestre) {
+    database.ref(`campanhas/${campanhaAtual}/jogadores/${usuarioAtual.uid}`).update({
+      ultimaRolagem: resultadoTexto
+    });
+  }
+}
+
+// ==========================================
+// 3. CRIAÇÃO E ENTRADA EM CAMPANHAS
+// ==========================================
+
+// Para o Menu Direito (Mestre)
+function criarCampanhaMestre() {
+  const nomeCampanha = document.getElementById('idCampanhaRight').value.trim();
+  if (!nomeCampanha || !usuarioAtual) return alert("Digite o nome da mesa e faça login.");
+
+  const refCampanha = database.ref(`campanhas/${nomeCampanha}`);
+  refCampanha.once('value', snapshot => {
+    if (snapshot.exists()) {
+      const dados = snapshot.val();
+      if (dados.mestre !== usuarioAtual.uid) {
+        return alert("Erro: Já existe uma campanha com este nome pertencente a outro mestre.");
+      }
+      // Já é o mestre desta mesa existente
+      iniciarCampanha(nomeCampanha, true);
+    } else {
+      // Criação de nova mesa
+      refCampanha.set({ mestre: usuarioAtual.uid }).then(() => {
+        iniciarCampanha(nomeCampanha, true);
+      });
+    }
+  });
+}
+
+// Para o Menu Esquerdo (Jogador)
+function entrarCampanhaJogador() {
+  const nomeCampanha = document.getElementById('idCampanhaLeft').value.trim();
+  if (!nomeCampanha || !usuarioAtual) return alert("Digite o nome da mesa e faça login.");
+
+  const refCampanha = database.ref(`campanhas/${nomeCampanha}`);
+  refCampanha.once('value', snapshot => {
+    if (!snapshot.exists()) return alert("Campanha não encontrada! Verifique o nome com seu mestre.");
+    
+    iniciarCampanha(nomeCampanha, false);
+    enviarDadosJogadorFirebase(); // Manda os status iniciais pro mestre
+  });
+}
+
+function iniciarCampanha(nome, mestreStatus) {
+  campanhaAtual = nome;
+  isMestre = mestreStatus;
+  
+  // Atualiza UI
+  document.getElementById('statusCampanha').style.display = 'block';
+  document.getElementById('formCampanha').style.display = 'none';
+  document.getElementById('nomeCampanhaTexto').innerText = campanhaAtual;
+
+  limparListeners();
+
+  // Escuta os Logs de Rolagem
+  const refLogs = database.ref(`campanhas/${campanhaAtual}/logs`);
+  listenersAtivos.push({ ref: refLogs, event: 'child_added', callback: refLogs.on('child_added', renderizarLog) });
+
+  // Escuta os Jogadores (Apenas se for Mestre)
+  if (isMestre) {
+    const refJogadores = database.ref(`campanhas/${campanhaAtual}/jogadores`);
+    listenersAtivos.push({ ref: refJogadores, event: 'value', callback: refJogadores.on('value', renderizarMiniaturas) });
+  }
+}
+
+// ==========================================
+// 4. SAIR OU DELETAR CAMPANHA
+// ==========================================
+function sairDaCampanha() {
+  if (!campanhaAtual) return;
+
+  if (isMestre) {
+    if (confirm("Você é o mestre. Deseja DELETAR esta campanha? Todos os dados da mesa serão apagados.")) {
+      database.ref(`campanhas/${campanhaAtual}`).remove();
+      resetarMesaUI();
+    }
+  } else {
+    if (confirm("Deseja sair da campanha?")) {
+      database.ref(`campanhas/${campanhaAtual}/jogadores/${usuarioAtual.uid}`).remove();
+      resetarMesaUI();
+    }
+  }
+}
+
+function resetarMesaUI() {
+  limparListeners();
+  campanhaAtual = "";
+  document.getElementById('statusCampanha').style.display = 'none';
+  document.getElementById('formCampanha').style.display = 'block';
+  document.getElementById('listaJogadores').innerHTML = "";
+  document.getElementById('logRolagens').innerHTML = "";
+}
+
+function limparListeners() {
+  listenersAtivos.forEach(l => l.ref.off(l.event, l.callback));
+  listenersAtivos = [];
+}
+
+// ==========================================
+// 5. RENDERIZAÇÃO NA TELA
+// ==========================================
+
+// Log de Rolagens com Lógica Oculta
+function renderizarLog(snapshot) {
+  const log = snapshot.val();
+  const divLog = document.getElementById('logRolagens');
+  const item = document.createElement('div');
+  item.className = 'log-item';
+
+  let conteudoExibido = log.texto;
+
+  // Lógica da Rolagem Secreta
+  if (log.oculto) {
+    // Se quem está olhando NÃO for o dono da rolagem E NÃO for o mestre
+    if (usuarioAtual.uid !== log.uid && !isMestre) {
+      conteudoExibido = `<span style="color: #888; font-style: italic;">realizou uma rolagem oculta...</span>`;
+    } else {
+      conteudoExibido = `[SECRETO] ` + log.texto;
+      item.style.borderLeft = "3px solid #7f1d1d"; // Destaque visual
+    }
+  }
+
+  item.innerHTML = `<span class="log-nome">${log.nome}</span>: <span class="log-valor">${conteudoExibido}</span>`;
+  divLog.prepend(item); // Coloca as mais novas no topo
+}
+
+// Escudo do Mestre (Miniaturas)
+function renderizarMiniaturas(snapshot) {
+  const lista = document.getElementById('listaJogadores');
+  lista.innerHTML = "<h4 style='color: var(--cor-dourado); margin-bottom: 10px; font-size: 1rem;'>Jogadores na Mesa</h4>";
+
+  snapshot.forEach(child => {
+    const dados = child.val();
+    const card = document.createElement('div');
+    card.className = 'card-jogador';
+    
+    card.innerHTML = `
+      <strong style="color: var(--cor-dourado); font-size: 1.1rem;">${dados.nome || 'Desconhecido'}</strong>
+      <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #ff2944;">❤️ Vida:</span> <strong>${dados.vida}/${dados.vidaMax}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #0099ff;">🧠 Sanidade:</span> <strong>${dados.sanidade}/${dados.sanidadeMax}</strong>
+        </div>
+        <div style="display: flex; justify-content: space-between;">
+          <span style="color: #ffca2d;">✨ Aura:</span> <strong>${dados.aura}/${dados.auraMax}</strong>
+        </div>
+        <div style="margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(197, 160, 89, 0.3);">
+          <span style="color: #aaa;">Última Ação:</span> <br>
+          <strong style="color: #d9d9d9;">${dados.ultimaRolagem || "Nenhuma rolagem ainda."}</strong>
+        </div>
+      </div>
+    `;
+    lista.appendChild(card);
+  });
+}
+
+// Atualiza status do jogador no firebase ao editar a ficha
+function enviarDadosJogadorFirebase() {
+  if (!campanhaAtual || isMestre || !usuarioAtual) return;
+  
+  const nomeAtivo = document.getElementById('nome').value || document.getElementById('jogador').value;
+  
+  const dados = {
+    nome: nomeAtivo,
+    vida: document.getElementById('vida').value || 0,
+    vidaMax: (document.getElementById('vidaMaxTxt').innerText.match(/\d+/) || [0])[0],
+    sanidade: document.getElementById('sanidade').value || 0,
+    sanidadeMax: (document.getElementById('sanidadeMaxTxt').innerText.match(/\d+/) || [0])[0],
+    aura: document.getElementById('aura').value || 0,
+    auraMax: (document.getElementById('auraMaxTxt').innerText.match(/\d+/) || [0])[0]
+  };
+
+  database.ref(`campanhas/${campanhaAtual}/jogadores/${usuarioAtual.uid}`).update(dados);
 }
 
 function abrirModalConfig(index) {
@@ -2353,21 +2530,6 @@ function toggleSecao(idContent, idIcon) {
   }
 }
 
-function criarCampanha() {
-  const idCampanha = document.getElementById('idCampanha').value.trim();
-  const uidUsuario = firebase.auth().currentUser.uid; // Assumindo que o auth já está configurado
-
-  if (!idCampanha) return alert("Digite um nome/ID para a campanha.");
-
-  // Define este usuário como o mestre no Firebase
-  firebase.database().ref('campanhas/' + idCampanha).update({
-    mestre: uidUsuario
-  }).then(() => {
-    alert("Campanha criada! Você é o Mestre.");
-    entrarNaCampanha(idCampanha);
-  });
-}
-
 function ajustarStatus(tipo) {
   const inputQuick = document.getElementById(tipo + "Quick");
   const val = parseInt(inputQuick.value);
@@ -2422,7 +2584,6 @@ function registrarLog(tipo, detalhe, total){
 }
 
 const auth = firebase.auth();
-let usuarioAtual = null;
 
 function loginGoogle() {
   const provider = new firebase.auth.GoogleAuthProvider();
