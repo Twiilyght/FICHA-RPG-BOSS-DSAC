@@ -2103,12 +2103,6 @@ function enviarDadosJogadorFirebase() {
   firebase.database().ref(`campanhas/${campanhaAtual}/jogadores/${uidUsuario}`).update(dadosParaMestre);
 }
 
-// Exemplo: Sempre que a vida for atualizada no input HTML, chama a sincronização
-function atualizarVida() {
-  // ... seu código original de cálculo de vida ...
-  enviarDadosJogadorFirebase(); // Adicione esta linha no final
-}
-
 function sairDaCampanha() {
     campanhaAtual = "";
     document.getElementById("formCampanha").style.display = "block";
@@ -2895,6 +2889,7 @@ function atualizarAura(){
     tempTxt.style.display = "none";
     bar.classList.remove("temp-aura");
     bar.style.width = max > 0 ? ((v / max) * 100) + "%" : "0%";
+    enviarDadosJogadorFirebase(); 
   }
 }
 
@@ -2917,6 +2912,7 @@ function atualizarVida(){
     tempTxt.style.display = "none";
     bar.classList.remove("temp-vida");
     atualizarBarra("vida","vida-bar",max);
+    enviarDadosJogadorFirebase(); 
   }
 }
 
@@ -2939,6 +2935,7 @@ function atualizarSanidade(){
     tempTxt.style.display = "none";
     bar.classList.remove("temp-sanidade");
     atualizarBarra("sanidade","sanidade-bar",max);
+    enviarDadosJogadorFirebase(); 
   }
 }
 
