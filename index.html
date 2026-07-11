@@ -2601,28 +2601,43 @@ function renderInventario() {
   box.innerHTML = htmlString;
 }
 
-function atualizarNomeSlots() {
-
-    const nome =
-        document.getElementById("nome").value.trim();
-
-    const options =
-        document.querySelectorAll("#slot option");
-
-    options.forEach((op, index)=>{
-
-        const slot = index + 1;
-
-        op.textContent =
-            nome
-            ? `${nome} (Slot ${slot})`
-            : `Slot ${slot}`;
-
-    });
-
+function atualizarNomeSlotEspecifico(slot, nomePersonagem) {
+  const option = document.querySelector(`#slot option[value="${slot}"]`);
+  if (option) {
+    option.textContent = nomePersonagem
+      ? `${nomePersonagem} (Slot ${slot})`
+      : `Slot ${slot}`;
+  }
 }
+
+function sincronizarNomeDoSlotAtual() {
+  const slot = document.getElementById("slot").value;
+  const nome = document.getElementById("nome").value.trim();
+  atualizarNomeSlotEspecifico(slot, nome);
+}
+
 document.getElementById('inputFicha').addEventListener('change', carregarFichaJSON);
   
+document.getElementById("slot").addEventListener("change", () => {
+  const slot = document.getElementById("slot").value;
+  const chave = "fichaRPG_" + slot;
+  const dadosSalvos = localStorage.getItem(chave);
+
+  if (dadosSalvos) {
+    const d = JSON.parse(dadosSalvos);
+    document.getElementById("nome").value = d.nome || "";
+    atualizarNomeSlotEspecifico(slot, d.nome || "");
+  } else {
+    limparFicha();
+    atualizarNomeSlotEspecifico(slot, "");
+  }
+});
+
+document.getElementById("nome").addEventListener("input", () => {
+  sincronizarNomeDoSlotAtual();
+});
+
+
 function baixarFichaJSON() {
   // Pega qual slot de ficha está sendo usado (ajuste o ID se o seu select for diferente)
   const slot = document.getElementById("slot")?.value || "1";
@@ -2669,6 +2684,8 @@ function carregarFichaJSON(event) {
     return;
   }
 
+  const slot = document.getElementById("slot").value;
+  const chave = "fichaRPG_" + slot;
   const file = event.target.files[0];
   const reader = new FileReader();
 
@@ -2757,7 +2774,7 @@ function carregarFichaJSON(event) {
       if (typeof atualizarBloqueio === "function") atualizarBloqueio();
       
       // Se houver uma função para atualizar os nomes no slot, chama também
-      if (typeof atualizarNomeSlots === "function") atualizarNomeSlots();
+      if (typeof sincronizarNomeDoSlotAtual === "function") sincronizarNomeDoSlotAtual();
 
       alert("Ficha importada com sucesso!");
       
@@ -3628,10 +3645,18 @@ function carregarImagem(event){
   reader.readAsDataURL(file);
 }
   
-function salvarFicha() {
+function baixarFichaJSON() {
+  const slot = document.getElementById("slot")?.value || "1";
+  const chave = "fichaRPG_" + slot;
+  const dadosSalvos = localStorage.getItem(chave);
+
   if (!usuarioAtual) {
     alert("⚠️ Você precisa fazer login com o Google para salvar a ficha!");
     return;
+  }
+
+   if (!dadosSalvos) {
+    return alert("Nenhum dado encontrado nesse slot!");
   }
 
   const dados = {
@@ -3766,11 +3791,14 @@ function limparFicha(){
   atualizarBloqueio();
   atualizarDT();
 }
-  
+
 /* =============== CARREGAR =============== */
 function carregarFichaDaNuvem() {
   if (!usuarioAtual) return;
 
+  const slot = document.getElementById("slot").value;
+  const chave = "fichaRPG_" + slot;
+  const dadosSalvos = localStorage.getItem(chave);
   // Busca uma vez (once) os dados na nuvem daquele usuário
   database.ref('fichas/' + usuarioAtual.uid).once('value').then(snapshot => {
     const d = snapshot.val();
@@ -3783,7 +3811,7 @@ function carregarFichaDaNuvem() {
 
     // --- PREENCHE OS DADOS (Mesma lógica do seu carregarFicha antigo) ---
     document.getElementById("nome").value = d.nome || "";
-    atualizarNomeSlots();
+    sincronizarNomeDoSlotAtual();
     document.getElementById("idade").value = d.idade || "";
     document.getElementById("antecedencia").value = d.antecedencia || "";
     document.getElementById("descricao").value = d.descricao || "";
@@ -3860,6 +3888,10 @@ abas.forEach(btn => {
 document.addEventListener('DOMContentLoaded', () => {
   const abas = document.querySelectorAll(".tab-button");
   const conteudos = document.querySelectorAll(".tab-content");
+
+document.getElementById("nome").addEventListener("input", () => {
+  sincronizarNomeDoSlotAtual();
+});
 
   abas.forEach(btn => {
     btn.addEventListener("click", () => {
