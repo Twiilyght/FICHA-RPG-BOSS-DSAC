@@ -1632,19 +1632,15 @@
     </div>
 
 <!-- HISTÓRICO DE ROLAGENS (NO MENU ESQUERDO) -->
-    <div style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; flex-grow: 1; display: flex; flex-direction: column;">
-      <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Histórico</h3>
-      
-      <!-- Novo botão de Rolagem Oculta -->
-      <button id="btnRolagemPrivada" class="btn-toggle-oculto" onclick="toggleRolagemOculta()" style="margin-bottom: 12px;">
-        👁️ Rolar Aberto (Público)
-      </button>
+<div style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; flex-grow: 1; display: flex; flex-direction: column;">
+  <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Histórico</h3>
+  
+  <button id="btnRolagemPrivada" class="btn-toggle-oculto" onclick="toggleRolagemOculta()" style="margin-bottom: 12px;">
+    👁️ Rolar Aberto (Público)
+  </button>
 
-      <div id="logRolagens" style="flex-grow: 1; max-height: none; height: 250px;"></div>
-    </div>
-
-      <div id="logRolagens" style="flex-grow: 1; max-height: none; height: 250px;"></div>
-    </div>
+  <div id="logRolagens" style="flex-grow: 1; max-height: none; height: 250px; overflow-y: auto;"></div>
+</div>
 
     <!-- CAMPANHA E ESCUDO DO MESTRE -->
     <div class="bloco-campanha" style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; margin-bottom: 15px;">
@@ -1654,17 +1650,6 @@
       
       <!-- Aqui é onde as fichas dos outros jogadores vão aparecer -->
       <div id="listaJogadores" style="margin-top: 15px;"></div>
-    </div>
-
-    <!-- HISTÓRICO DE ROLAGENS -->
-    <div style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; flex-grow: 1; display: flex; flex-direction: column;">
-      <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Histórico</h3>
-      <label style="display:flex; align-items:center; gap:8px; margin-bottom: 10px; cursor:pointer; font-size: 0.8rem;">
-        <input type="checkbox" id="rolagemPrivada" style="width:14px; height:14px;"> 
-        Rolar Oculto (Só o Mestre vê)
-      </label>
-      <!-- A altura do logRolagens agora é flexível para ocupar o espaço restante -->
-      <div id="logRolagens" style="flex-grow: 1; max-height: none; height: 250px;"></div>
     </div>
   </aside>
 
@@ -2036,17 +2021,92 @@ let logRolagens = [];
 let indiceHabConfig = null;
 
 let campanhaAtual = "";
+let listenerJogadores = null;
 
-function entrarNaCampanha() {
-    campanhaAtual = document.getElementById("idCampanha").value.trim();
-    if (!campanhaAtual) return alert("Digite um código!");
+function entrarNaCampanha(idParam = null) {
+  const idCampanha = idParam || document.getElementById('idCampanha').value.trim();
+  const uidUsuario = firebase.auth().currentUser.uid;
+
+  if (!idCampanha) return;
+  campanhaAtual = idCampanha;
+
+  firebase.database().ref('campanhas/' + idCampanha + '/mestre').once('value', snapshot => {
+    const uidMestre = snapshot.val();
+
+    document.getElementById('statusCampanha').style.display = 'block';
+    document.getElementById('nomeCampanhaTexto').innerText = idCampanha;
+
+    if (uidUsuario === uidMestre) {
+      // É O MESTRE: Inicia a escuta em tempo real dos jogadores
+      escutarJogadoresMestre();
+    } else {
+      // É JOGADOR: Envia os próprios dados e não vê a lista
+      enviarDadosJogadorFirebase();
+    }
+  });
+}
+
+function escutarJogadoresMestre() {
+  const refJogadores = firebase.database().ref('campanhas/' + campanhaAtual + '/jogadores');
+  
+  // Limpa listeners antigos para não duplicar
+  if (listenerJogadores) refJogadores.off('value', listenerJogadores);
+
+  listenerJogadores = refJogadores.on('value', snapshot => {
+    const lista = document.getElementById('listaJogadores');
+    lista.innerHTML = ''; // Limpa a lista para atualizar
     
-    // Troca a UI
-    document.getElementById("formCampanha").style.display = "none";
-    document.getElementById("statusCampanha").style.display = "block";
-    document.getElementById("nomeCampanhaTexto").innerText = campanhaAtual;
-    
-    monitorarCampanha(campanhaAtual);
+    snapshot.forEach(child => {
+      const dados = child.val();
+      
+      // Constrói o card miniatura aproveitando suas classes CSS
+      const card = document.createElement('div');
+      card.className = 'card-jogador';
+      
+      card.innerHTML = `
+        <strong style="color: var(--cor-dourado); font-size: 1.1rem;">${dados.nome || 'Desconhecido'}</strong>
+        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #ff2944;">❤️ Vida:</span> 
+            <strong>${dados.vida}/${dados.vidaMax}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #0099ff;">🧠 Sanidade:</span> 
+            <strong>${dados.sanidade}/${dados.sanidadeMax}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: #ffca2d;">✨ Aura:</span> 
+            <strong>${dados.aura}/${dados.auraMax}</strong>
+          </div>
+        </div>
+      `;
+      lista.appendChild(card);
+    });
+  });
+}
+
+function enviarDadosJogadorFirebase() {
+  if (!campanhaAtual) return;
+  
+  const uidUsuario = firebase.auth().currentUser.uid;
+  
+  const dadosParaMestre = {
+    nome: document.getElementById('nome').value || document.getElementById('jogador').value,
+    vida: document.getElementById('vida').value,
+    vidaMax: document.getElementById('vidaMaxTxt').innerText.replace(/\D/g, ''), // Pega só o número
+    sanidade: document.getElementById('sanidade').value,
+    sanidadeMax: document.getElementById('sanidadeMaxTxt').innerText.replace(/\D/g, ''),
+    aura: document.getElementById('aura').value,
+    auraMax: document.getElementById('auraMaxTxt').innerText.replace(/\D/g, '')
+  };
+
+  firebase.database().ref(`campanhas/${campanhaAtual}/jogadores/${uidUsuario}`).update(dadosParaMestre);
+}
+
+// Exemplo: Sempre que a vida for atualizada no input HTML, chama a sincronização
+function atualizarVida() {
+  // ... seu código original de cálculo de vida ...
+  enviarDadosJogadorFirebase(); // Adicione esta linha no final
 }
 
 function sairDaCampanha() {
@@ -2202,16 +2262,18 @@ function carregarFichaDeOutro(dados) {
     alert("Ficha de " + dados.nome + " carregada no painel!");
 }
 
+let isRolagemOculta = false;
+
 function toggleRolagemOculta() {
   const btn = document.getElementById('btnRolagemPrivada');
-  rolagemPrivadaStatus = !rolagemPrivadaStatus;
+  isRolagemOculta = !isRolagemOculta;
   
-  if (rolagemPrivadaStatus) {
+  if (isRolagemOculta) {
     btn.classList.add('active');
-    btn.innerHTML = "🙈 Rolar Oculto (Mestre vê)";
+    btn.innerHTML = '🔒 Rolar Oculto (Privado)';
   } else {
     btn.classList.remove('active');
-    btn.innerHTML = "👁️ Rolar Aberto (Público)";
+    btn.innerHTML = '👁️ Rolar Aberto (Público)';
   }
 }
 
@@ -2285,6 +2347,21 @@ function toggleSecao(idContent, idIcon) {
     content.style.display = "none";
     icon.classList.add("minimized");
   }
+}
+
+function criarCampanha() {
+  const idCampanha = document.getElementById('idCampanha').value.trim();
+  const uidUsuario = firebase.auth().currentUser.uid; // Assumindo que o auth já está configurado
+
+  if (!idCampanha) return alert("Digite um nome/ID para a campanha.");
+
+  // Define este usuário como o mestre no Firebase
+  firebase.database().ref('campanhas/' + idCampanha).update({
+    mestre: uidUsuario
+  }).then(() => {
+    alert("Campanha criada! Você é o Mestre.");
+    entrarNaCampanha(idCampanha);
+  });
 }
 
 function ajustarStatus(tipo) {
