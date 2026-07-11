@@ -1659,7 +1659,22 @@
       <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Anotações da Missão</h3>
       <button class="salvar-btn" style="width: 100%; padding: 10px; font-size: 0.9rem;" onclick="abrirModalNotas()">Abrir Bloco de Notas 📝</button>
     </div>
+     </div>
+     <!-- MENU LATERAL DIREITO -->
+  <aside id="sidebarRight" class="sidebar-right">
+    <h2 style="font-size: 1.4rem; text-align: center; border-bottom: 1px solid var(--cor-dourado); padding-bottom: 10px; margin-bottom: 10px;">Registro de Informações</h2>
+
+    <!-- BLOCO DE NOTAS -->
+    <div style="margin-bottom: 20px;">
+      <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Anotações da Missão</h3>
+      <button class="salvar-btn" style="width: 100%; padding: 10px; font-size: 0.9rem;" onclick="abrirModalNotas()">Abrir Bloco de Notas 📝</button>
     </div>
+
+    <!-- ESCUDO DO MESTRE (NOVO) -->
+    <div id="escudoMestreContainer" style="margin-bottom: 20px; border-top: 1px dashed var(--cor-dourado-transp); padding-top: 20px;">
+      <!-- O conteúdo será gerado dinamicamente pelo JavaScript (Mestre ou Jogador) -->
+    </div>
+  </aside>
   </aside>
 
   <!-- CONTEÚDO PRINCIPAL (FICHA) -->
@@ -1992,6 +2007,207 @@ let logRolagens = [];
 
 // Variável global para sabermos qual habilidade está sendo editada no momento
 let indiceHabConfig = null;
+
+/* =========================================
+   SISTEMA: ESCUDO DO MESTRE (TEMPO REAL)
+   ========================================= */
+
+const EMAIL_MESTRE_OFICIAL = "icarogabrielcavalcantes@gmail.com";
+let refEscudo = database.ref('escudo_mestre');
+let isSynced = false;
+let listenerEscudoMestre = null;
+
+// Modifica o Auth State Changed para carregar o Escudo correto quando logar
+firebase.auth().onAuthStateChanged((user) => {
+  usuarioAtual = user;
+  if (user) {
+    document.getElementById('userInfo').style.display = 'block';
+    document.getElementById('userName').innerText = user.displayName;
+    document.getElementById('btnLogin').style.display = 'none';
+    
+    // Identifica papel do usuário e renderiza a UI correspondente
+    isMestre = (user.email === EMAIL_MESTRE_OFICIAL);
+    renderizarUIEscudo(user);
+    
+  } else {
+    document.getElementById('userInfo').style.display = 'none';
+    document.getElementById('btnLogin').style.display = 'block';
+    document.getElementById('escudoMestreContainer').innerHTML = ''; // Limpa se deslogar
+    if (listenerEscudoMestre) refEscudo.off('value', listenerEscudoMestre);
+  }
+});
+
+// Renderiza botões ou lista dependendo do Email
+function renderizarUIEscudo(user) {
+  const container = document.getElementById('escudoMestreContainer');
+  
+  if (isMestre) {
+    container.innerHTML = `
+      <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Fichas Sincronizadas (Máx 10)</h3>
+      <div id="listaFichasEscudo" style="display:flex; flex-direction:column; gap:10px;"></div>
+    `;
+    iniciarMonitoramentoMestre();
+  } else {
+    container.innerHTML = `
+      <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Escudo do Mestre</h3>
+      <button id="btnSyncFicha" class="salvar-btn" style="width: 100%; padding: 10px; font-size: 0.9rem;" onclick="toggleSincronizacao()">Sincronizar Ficha</button>
+      <p style="font-size: 11px; color: #888; text-align: center; margin-top: 5px;">Compartilha seus status em tempo real com o Mestre.</p>
+    `;
+    verificarStatusSincronizacaoJogador();
+  }
+}
+
+// ==========================================
+// FUNÇÕES DO JOGADOR
+// ==========================================
+
+function getSyncId() {
+  if (!usuarioAtual) return null;
+  const slotAtual = document.getElementById('slot').value;
+  return usuarioAtual.uid + "_slot_" + slotAtual;
+}
+
+function toggleSincronizacao() {
+  if (!usuarioAtual) {
+    alert("Você precisa fazer login para sincronizar a ficha.");
+    return;
+  }
+  
+  const syncId = getSyncId();
+  const btn = document.getElementById('btnSyncFicha');
+  
+  if (isSynced) {
+    // Interromper Sincronização (Remove do Escudo)
+    refEscudo.child(syncId).remove().then(() => {
+      isSynced = false;
+      btn.innerText = "Sincronizar Ficha";
+      btn.style.background = "var(--cor-btn-bg)";
+    });
+  } else {
+    // Iniciar Sincronização (Escreve no Escudo)
+    isSynced = true;
+    enviarDadosParaEscudo();
+    btn.innerText = "Interromper Sincronização";
+    btn.style.background = "var(--cor-btn-remover-bg)"; // Vermelho
+  }
+}
+
+function verificarStatusSincronizacaoJogador() {
+  const syncId = getSyncId();
+  if (!syncId) return;
+
+  refEscudo.child(syncId).once('value').then(snapshot => {
+    const btn = document.getElementById('btnSyncFicha');
+    if (!btn) return;
+    
+    if (snapshot.exists()) {
+      isSynced = true;
+      btn.innerText = "Interromper Sincronização";
+      btn.style.background = "var(--cor-btn-remover-bg)";
+    } else {
+      isSynced = false;
+      btn.innerText = "Sincronizar Ficha";
+      btn.style.background = "var(--cor-btn-bg)";
+    }
+  });
+}
+
+function enviarDadosParaEscudo() {
+  if (!isSynced || !usuarioAtual || isMestre) return;
+  
+  const syncId = getSyncId();
+  
+  // Captura os limites (removendo a palavra "Máx: " se estiver presente)
+  const formatarMax = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.innerText.replace('Máx: ', '').trim() : "0";
+  };
+
+  const dadosSync = {
+    nome: document.getElementById('nome').value || "Desconhecido",
+    jogador: document.getElementById('jogador').value || usuarioAtual.displayName,
+    vida: document.getElementById('vida').value || 0,
+    vidaMax: formatarMax('vidaMaxTxt'),
+    sanidade: document.getElementById('sanidade').value || 0,
+    sanidadeMax: formatarMax('sanidadeMaxTxt'),
+    aura: document.getElementById('aura').value || 0,
+    auraMax: formatarMax('auraMaxTxt'),
+    timestamp: firebase.database.ServerValue.TIMESTAMP
+  };
+  
+  refEscudo.child(syncId).set(dadosSync);
+}
+
+// Dispara a sincronização automaticamente quando o jogador altera slot ou digita atributos chaves
+document.getElementById('slot').addEventListener('change', () => {
+  if (!isMestre) verificarStatusSincronizacaoJogador();
+});
+
+// Intercepta mudanças programáticas e de digitação
+['keyup', 'change', 'input'].forEach(ev => {
+  ['vida', 'sanidade', 'aura', 'nome', 'jogador'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener(ev, enviarDadosParaEscudo);
+  });
+});
+
+// Sobrescreve o ajustarStatus para garantir que o ajuste rápido (botão +/-) sincronize
+if (typeof window.ajustarStatus === 'function') {
+  const originalAjustarStatus = window.ajustarStatus;
+  window.ajustarStatus = function(tipo) {
+    originalAjustarStatus(tipo); // Roda sua lógica original
+    enviarDadosParaEscudo(); // Manda pro firebase instantaneamente
+  };
+}
+
+// ==========================================
+// FUNÇÕES DO MESTRE
+// ==========================================
+
+function iniciarMonitoramentoMestre() {
+  if (listenerEscudoMestre) refEscudo.off('value', listenerEscudoMestre);
+  
+  // Limita a 10 personagens sincronizados, ordenados pelos mais recentes
+  listenerEscudoMestre = refEscudo.orderByChild("timestamp").limitToLast(10).on('value', snapshot => {
+    const lista = document.getElementById('listaFichasEscudo');
+    if (!lista) return;
+    lista.innerHTML = ''; 
+    
+    if (!snapshot.exists()) {
+      lista.innerHTML = '<span style="color: #888; font-size: 12px;">Nenhuma ficha sincronizada.</span>';
+      return;
+    }
+
+    snapshot.forEach(child => {
+      const dados = child.val();
+      
+      const card = document.createElement('div');
+      card.className = 'card-jogador';
+      card.innerHTML = `
+        <strong style="color: var(--cor-dourado); font-size: 1.1rem; text-shadow: 0 0 5px var(--cor-dourado-transp);">
+          ${dados.nome}
+        </strong>
+        <div style="font-size: 10px; color: #aaa; margin-bottom: 8px;">Jogador: ${dados.jogador}</div>
+        
+        <div style="display: flex; flex-direction: column; gap: 4px; font-size: 0.95rem;">
+          <div style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">
+            <span style="color: #ff2944; text-shadow: 0 0 3px #ff2944;">❤️ Vida</span> 
+            <strong>${dados.vida} / ${dados.vidaMax}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">
+            <span style="color: #0099ff; text-shadow: 0 0 3px #0099ff;">🧠 Sanid</span> 
+            <strong>${dados.sanidade} / ${dados.sanidadeMax}</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">
+            <span style="color: #ffca2d; text-shadow: 0 0 3px #ffca2d;">✨ Aura</span> 
+            <strong>${dados.aura} / ${dados.auraMax}</strong>
+          </div>
+        </div>
+      `;
+      lista.prepend(card); // Adiciona os mais recentes no topo
+    });
+  });
+}
 
 function escutarJogadoresMestre() {
 
