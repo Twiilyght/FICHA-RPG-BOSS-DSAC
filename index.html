@@ -2852,7 +2852,7 @@ function carregarFichaJSON(event) {
       fichasSlots[slot] = JSON.parse(JSON.stringify(dados));
       atualizarNomeSlotEspecifico(slot, dados.nome);
 
-      alert(`Ficha importada e salva no Slot ${slot} com sucesso!`);
+      alert(`Fichas dos Slots importadas com sucesso!`);
     } catch (erro) {
       console.error(erro);
       alert("Erro ao ler o arquivo JSON. Tem certeza que é uma ficha válida?");
