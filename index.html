@@ -1625,9 +1625,12 @@
       <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.9rem;" onclick="salvarFicha()">Salvar Ficha</button>
       <div style="display: flex; gap: 5px;">
         <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.8rem; flex: 1;" onclick="baixarFichaJSON()">Exportar</button>
-        <input type="file" id="inputFicha" style="display: none;" accept=".json">
-        <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.8rem; flex: 1;" onclick="carregarFichaJSON(event)">Importar</button>
-      </div>
+<!-- O botão apenas abre o seletor de arquivos -->
+<button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.8rem; flex: 1;" 
+        onclick="document.getElementById('inputFicha').click()">Importar</button>
+
+<!-- O input escuta a alteração e chama a função -->
+<input type="file" id="inputFicha" style="display: none;" accept=".json" onchange="carregarFichaJSON(event)">      </div>
       <textarea id="codigoFicha" placeholder="Código da ficha para importação/exportação..." rows="2" style="width:100%; box-sizing: border-box; border-radius:4px; padding:5px; font-family:monospace; font-size: 10px;"></textarea>
       <div id="alerta" class="alerta" style="font-size: 12px; padding: 5px;">Ficha salva com sucesso!</div>
     </div>
@@ -2488,34 +2491,40 @@ function baixarFichaJSON() {
   URL.revokeObjectURL(url);
 }
 
+/**
+ * Carrega e processa os dados de uma ficha a partir de um arquivo JSON.
+ * @param {Event} event - O evento de input file.
+ */
 function carregarFichaJSON(event) {
   if (!event || !event.target || !event.target.files || event.target.files.length === 0) {
-    console.warn("Nenhum arquivo selecionado ou evento inválido.");
+    console.warn("Nenhum arquivo selecionado.");
     return;
   }
 
   const file = event.target.files[0];
-
   const reader = new FileReader();
+
   reader.onload = function(e) {
     try {
       let dados = JSON.parse(e.target.result);
 
+      // 1. Conversão de formato antigo (Array) para o novo formato
       if (Array.isArray(dados)) {
         const lista = dados;
         dados = {
-          nome: lista[0], idade: lista[1], nivel: lista[2],
-          vida: lista[3], sanidade: lista[4], aura: lista[5],
-          antecedencia: lista[6], descricao: lista[7], historia: lista[8],
-          rdFisica: lista[9], rdMental: lista[10], dtBonus: lista[11],
+          nome: lista[0] || "", idade: lista[1] || "", nivel: lista[2] || "",
+          vida: lista[3] || "", sanidade: lista[4] || "", aura: lista[5] || "",
+          antecedencia: lista[6] || "", descricao: lista[7] || "", historia: lista[8] || "",
+          rdFisica: lista[9] || 0, rdMental: lista[10] || 0, dtBonus: lista[11] || 0,
           atributos: {}, pericias: {}, habilidades: [], inventario: []
         };
 
         const siglas = ["FOR", "CON", "AGI", "INT", "POD"];
         if(lista[12]) lista[12].forEach((val, i) => { dados.atributos[siglas[i]] = val; });
 
+        // Garante o ID maiúsculo (ex: PER_0) para evitar bugs de exibição nos popups
         if(lista[13]) lista[13].forEach((p, i) => {
-          dados.pericias["per_" + i] = { valor: p[0], bonus: p[1], atributo: p[2] };
+          dados.pericias["PER_" + i] = { valor: p[0], bonus: p[1], atributo: p[2] };
         });
 
         if(lista[14]) dados.habilidades = lista[14].map(h => ({
@@ -2525,22 +2534,71 @@ function carregarFichaJSON(event) {
         if(lista[15]) dados.inventario = lista[15].map(i => ({ nome: i[0], peso: i[1], desc: i[2] }));
       }
 
-      // Salva os dados processados direto na memória do navegador
-      const slot = document.getElementById("slot")?.value || "1";
-      localStorage.setItem("fichaRPG_" + slot, JSON.stringify(dados));
+      // 2. Preenche os dados básicos na tela
+      document.getElementById("nome").value = dados.nome || "";
+      document.getElementById("idade").value = dados.idade || "";
+      document.getElementById("antecedencia").value = dados.antecedencia || "";
+      document.getElementById("descricao").value = dados.descricao || "";
+      document.getElementById("historia").value = dados.historia || "";
+      document.getElementById("nivel").value = dados.nivel || 1;
+      document.getElementById("vida").value = dados.vida || 0;
+      document.getElementById("sanidade").value = dados.sanidade || 0;
+      document.getElementById("aura").value = dados.aura || 0;
+      document.getElementById("rdFisica").value = dados.rdFisica || 0;
+      document.getElementById("rdMental").value = dados.rdMental || 0;
+      document.getElementById("dtBonus").value = dados.dtBonus || 0;
+
+      // 3. Preenche os Atributos
+      for (const s in dados.atributos) {
+        const el = document.getElementById("atr_" + s);
+        if (el) el.value = dados.atributos[s];
+      }
+
+      // 4. Preenche as Perícias (suporta tanto PER_0 quanto per_0 no HTML)
+      for (const p in dados.pericias) {
+        const data = dados.pericias[p];
+        const idHtml = document.getElementById(p) ? p : p.toLowerCase(); 
+
+        if (typeof data === "object") {
+          const elValor = document.getElementById(idHtml);
+          if (elValor) elValor.value = data.valor || 1;
+
+          const elBonus = document.getElementById("bonus_" + idHtml);
+          if (elBonus) elBonus.value = data.bonus || 0;
+
+          const elAtr = document.getElementById("atrKey_" + idHtml);
+          if (elAtr) elAtr.value = data.atributo || "FOR";
+        } else {
+          const elValor = document.getElementById(idHtml);
+          if (elValor) elValor.value = data;
+        }
+      }
+
+      // 5. O SEGREDO: Atualiza as listas e manda desenhar na tela!
+      habilidades = dados.habilidades || [];
+      renderHabilidades(); 
+
+      inventario = dados.inventario || [];
+      if (typeof renderInventario === "function") {
+          renderInventario(); 
+      }
+
+      // 6. Roda os cálculos automáticos (como a CD que usa 12 + POD + metade do atributo)
+      if (typeof atualizarDT === "function") atualizarDT();
+      if (typeof recalcularVidaSanidade === "function") recalcularVidaSanidade();
+      if (typeof atualizarBloqueio === "function") atualizarBloqueio();
       
-      alert("Ficha carregada com sucesso!");
-      
-      // Recarrega a página para que o seu sistema puxe os dados da memória e preencha a tela perfeitamente
-      location.reload(); 
+      // Se houver uma função para atualizar os nomes no slot, chama também
+      if (typeof atualizarNomeSlots === "function") atualizarNomeSlots();
+
+      alert("Ficha importada com sucesso!");
       
     } catch (erro) {
       console.error(erro);
-      alert("Erro ao ler o arquivo. Tem certeza que é um arquivo de ficha válido?");
+      alert("Erro ao ler o arquivo JSON. Tem certeza que é uma ficha válida?");
     }
   };
   
-  // Lê o conteúdo do arquivo
   reader.readAsText(file);
 }
   
