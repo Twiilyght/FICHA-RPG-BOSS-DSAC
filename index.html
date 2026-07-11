@@ -2639,35 +2639,29 @@ document.getElementById("nome").addEventListener("input", () => {
 
 
 function baixarFichaJSON() {
-  // Pega qual slot de ficha está sendo usado (ajuste o ID se o seu select for diferente)
   const slot = document.getElementById("slot")?.value || "1";
   const chave = "fichaRPG_" + slot;
-  
-  // Puxa a ficha diretamente da memória salva do navegador (não da tela)
   const dadosSalvos = localStorage.getItem(chave);
 
   if (!dadosSalvos) {
-    return alert("Nenhum dado encontrado! Salve a ficha (Salvar na Nuvem) antes de exportar.");
+    return alert("Nenhum dado encontrado nesse slot!");
   }
 
-  // Cria o arquivo .json
   const blob = new Blob([dadosSalvos], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-  
-  // Força o download do arquivo
+
   const link = document.createElement("a");
   link.href = url;
-  
-  // Tenta usar o nome do personagem para o nome do arquivo, se existir
-  let nomePersonagem = "Personagem";
+
+  let nomePersonagem = `Slot ${slot}`;
   try {
     const obj = JSON.parse(dadosSalvos);
-    // Verifica se é o formato antigo (array) ou novo (objeto) para achar o nome
-    if (Array.isArray(obj) && obj[0]) nomePersonagem = obj[0];
-    else if (obj.nome) nomePersonagem = obj.nome;
-  } catch(e) {}
+    if (obj.nome && obj.nome.trim() !== "") {
+      nomePersonagem = obj.nome.trim();
+    }
+  } catch (e) {}
 
-  link.download = `Ficha_${nomePersonagem}.json`;
+  link.download = `Ficha_${nomePersonagem}_Slot${slot}.json`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
@@ -2693,33 +2687,41 @@ function carregarFichaJSON(event) {
     try {
       let dados = JSON.parse(e.target.result);
 
-      // 1. Conversão de formato antigo (Array) para o novo formato
       if (Array.isArray(dados)) {
         const lista = dados;
         dados = {
-          nome: lista[0] || "", idade: lista[1] || "", nivel: lista[2] || "",
-          vida: lista[3] || "", sanidade: lista[4] || "", aura: lista[5] || "",
-          antecedencia: lista[6] || "", descricao: lista[7] || "", historia: lista[8] || "",
-          rdFisica: lista[9] || 0, rdMental: lista[10] || 0, dtBonus: lista[11] || 0,
-          atributos: {}, pericias: {}, habilidades: [], inventario: []
+          nome: lista[0] || "",
+          idade: lista[1] || "",
+          nivel: lista[2] || "",
+          vida: lista[3] || "",
+          sanidade: lista[4] || "",
+          aura: lista[5] || "",
+          antecedencia: lista[6] || "",
+          descricao: lista[7] || "",
+          historia: lista[8] || "",
+          rdFisica: lista[9] || 0,
+          rdMental: lista[10] || 0,
+          dtBonus: lista[11] || 0,
+          atributos: {},
+          pericias: {},
+          habilidades: [],
+          inventario: []
         };
 
         const siglas = ["FOR", "CON", "AGI", "INT", "POD"];
-        if(lista[12]) lista[12].forEach((val, i) => { dados.atributos[siglas[i]] = val; });
+        if (lista[12]) lista[12].forEach((val, i) => { dados.atributos[siglas[i]] = val; });
 
-        // Garante o ID maiúsculo (ex: PER_0) para evitar bugs de exibição nos popups
-        if(lista[13]) lista[13].forEach((p, i) => {
-          dados.pericias["PER_" + i] = { valor: p[0], bonus: p[1], atributo: p[2] };
+        if (lista[13]) lista[13].forEach((p, i) => {
+          dados.pericias["per_" + i] = { valor: p[0], bonus: p[1], atributo: p[2] };
         });
 
-        if(lista[14]) dados.habilidades = lista[14].map(h => ({
+        if (lista[14]) dados.habilidades = lista[14].map(h => ({
           nome: h[0], dado: h[1], desc: h[2], config: h[3] || {}, rolagens: h[4] || [], img: h[5] || ""
         }));
 
-        if(lista[15]) dados.inventario = lista[15].map(i => ({ nome: i[0], peso: i[1], desc: i[2] }));
+        if (lista[15]) dados.inventario = lista[15].map(i => ({ nome: i[0], peso: i[1], desc: i[2] }));
       }
 
-      // 2. Preenche os dados básicos na tela
       document.getElementById("nome").value = dados.nome || "";
       document.getElementById("idade").value = dados.idade || "";
       document.getElementById("antecedencia").value = dados.antecedencia || "";
@@ -2732,58 +2734,60 @@ function carregarFichaJSON(event) {
       document.getElementById("rdFisica").value = dados.rdFisica || 0;
       document.getElementById("rdMental").value = dados.rdMental || 0;
       document.getElementById("dtBonus").value = dados.dtBonus || 0;
+      document.getElementById("dtAtributoBase").value = dados.dtAtributoBase || "POD";
 
-      // 3. Preenche os Atributos
+      const img = document.getElementById("previewImg");
+      if (dados.imagem) {
+        img.src = dados.imagem;
+        img.style.display = "block";
+        img.dataset.base64 = dados.imagem;
+      } else {
+        img.style.display = "none";
+        img.dataset.base64 = "";
+      }
+
       for (const s in dados.atributos) {
         const el = document.getElementById("atr_" + s);
         if (el) el.value = dados.atributos[s];
       }
 
-      // 4. Preenche as Perícias (suporta tanto PER_0 quanto per_0 no HTML)
       for (const p in dados.pericias) {
         const data = dados.pericias[p];
-        const idHtml = document.getElementById(p) ? p : p.toLowerCase(); 
-
         if (typeof data === "object") {
-          const elValor = document.getElementById(idHtml);
+          const elValor = document.getElementById(p);
           if (elValor) elValor.value = data.valor || 1;
 
-          const elBonus = document.getElementById("bonus_" + idHtml);
+          const elBonus = document.getElementById("bonus_" + p);
           if (elBonus) elBonus.value = data.bonus || 0;
 
-          const elAtr = document.getElementById("atrKey_" + idHtml);
+          const elAtr = document.getElementById("atrKey_" + p);
           if (elAtr) elAtr.value = data.atributo || "FOR";
         } else {
-          const elValor = document.getElementById(idHtml);
+          const elValor = document.getElementById(p);
           if (elValor) elValor.value = data;
         }
       }
 
-      // 5. O SEGREDO: Atualiza as listas e manda desenhar na tela!
       habilidades = dados.habilidades || [];
-      renderHabilidades(); 
+      renderHabilidades();
 
       inventario = dados.inventario || [];
-      if (typeof renderInventario === "function") {
-          renderInventario(); 
-      }
+      renderInventario();
 
-      // 6. Roda os cálculos automáticos (como a CD que usa 12 + POD + metade do atributo)
-      if (typeof atualizarDT === "function") atualizarDT();
-      if (typeof recalcularVidaSanidade === "function") recalcularVidaSanidade();
-      if (typeof atualizarBloqueio === "function") atualizarBloqueio();
-      
-      // Se houver uma função para atualizar os nomes no slot, chama também
-      if (typeof sincronizarNomeDoSlotAtual === "function") sincronizarNomeDoSlotAtual();
+      atualizarDT();
+      recalcularVidaSanidade();
+      atualizarBloqueio();
 
-      alert("Ficha importada com sucesso!");
-      
+      localStorage.setItem(chave, JSON.stringify(dados));
+      atualizarNomeSlotEspecifico(slot, dados.nome);
+
+      alert(`Ficha importada e salva no Slot ${slot} com sucesso!`);
     } catch (erro) {
       console.error(erro);
       alert("Erro ao ler o arquivo JSON. Tem certeza que é uma ficha válida?");
     }
   };
-  
+
   reader.readAsText(file);
 }
   
@@ -3717,64 +3721,51 @@ function salvarFichaManual() {
     return;
   }
 
-  const slot = document.getElementById("slot")?.value || "1";
+  const slot = document.getElementById("slot").value;
   const chave = "fichaRPG_" + slot;
 
   const dados = {
-    jogador: document.getElementById("jogador").value || usuarioAtual.displayName,
+    jogador: usuarioAtual.displayName,
     uid: usuarioAtual.uid,
     imagem: document.getElementById("previewImg").dataset.base64 || "",
-    nome: document.getElementById("nome").value || "",
-    idade: document.getElementById("idade").value || "",
-    antecedencia: document.getElementById("antecedencia").value || "",
-    descricao: document.getElementById("descricao").value || "",
-    historia: document.getElementById("historia").value || "",
+    nome: document.getElementById("nome").value,
+    idade: document.getElementById("idade").value,
+    antecedencia: document.getElementById("antecedencia").value,
+    descricao: document.getElementById("descricao").value,
+    historia: document.getElementById("historia").value,
     inventario: inventario,
-    nivel: document.getElementById("nivel").value || 1,
-    vida: document.getElementById("vida").value || 0,
-    sanidade: document.getElementById("sanidade").value || 0,
-    aura: document.getElementById("aura").value || 0,
+    nivel: document.getElementById("nivel").value,
+    vida: document.getElementById("vida").value,
+    sanidade: document.getElementById("sanidade").value,
+    aura: document.getElementById("aura").value,
     habilidades: habilidades,
-    dtBonus: document.getElementById("dtBonus").value || 0,
-    dtAtributoBase: document.getElementById("dtAtributoBase").value || "POD",
-    rdFisica: document.getElementById("rdFisica").value || 0,
-    rdMental: document.getElementById("rdMental").value || 0,
+    dtBonus: document.getElementById("dtBonus").value,
+    dtAtributoBase: document.getElementById("dtAtributoBase").value,
+    rdFisica: document.getElementById("rdFisica").value,
+    rdMental: document.getElementById("rdMental").value,
     atributos: {},
     pericias: {}
   };
 
   atributos.forEach(a => {
-    const el = document.getElementById("atr_" + a.sigla);
-    if (el) dados.atributos[a.sigla] = el.value;
+    dados.atributos[a.sigla] = document.getElementById("atr_" + a.sigla).value;
   });
 
   pericias.forEach((p, i) => {
-    const id = "per_" + i;
-    dados.pericias[id] = {
-      valor: document.getElementById(id)?.value || 1,
-      bonus: document.getElementById("bonus_" + id)?.value || 0,
-      atributo: document.getElementById("atrKey_" + id)?.value || "FOR"
+    dados.pericias["per_" + i] = {
+      valor: document.getElementById("per_" + i).value,
+      bonus: document.getElementById("bonus_per_" + i).value,
+      atributo: document.getElementById("atrKey_per_" + i).value
     };
   });
-
-  const imgData = document.getElementById("previewImg").dataset.base64;
-  if (imgData) dados.imagem = imgData;
 
   localStorage.setItem(chave, JSON.stringify(dados));
   atualizarNomeSlotEspecifico(slot, dados.nome);
 
   const alerta = document.getElementById("alerta");
-  if (alerta) {
-    alerta.innerText = `Ficha salva no Slot ${slot} com sucesso!`;
-    alerta.style.display = "block";
-    setTimeout(() => alerta.style.display = "none", 2500);
-  }
-
-  database.ref("fichas/" + usuarioAtual.uid).set(dados)
-    .catch(error => {
-      console.error(error);
-      alert("Erro ao salvar na nuvem: " + error.message);
-    });
+  alerta.innerText = `Ficha salva no Slot ${slot} com sucesso!`;
+  alerta.style.display = "block";
+  setTimeout(() => alerta.style.display = "none", 2500);
 }
   
 function limparFicha(){
@@ -3821,19 +3812,16 @@ function carregarFichaDaNuvem() {
   const slot = document.getElementById("slot").value;
   const chave = "fichaRPG_" + slot;
   const dadosSalvos = localStorage.getItem(chave);
-  // Busca uma vez (once) os dados na nuvem daquele usuário
-  database.ref('fichas/' + usuarioAtual.uid).once('value').then(snapshot => {
-    const d = snapshot.val();
-    
-    if (!d) {
-      console.log("Nenhuma ficha encontrada na nuvem. Começando do zero.");
-      limparFicha();
-      return;
-    }
 
-    // --- PREENCHE OS DADOS (Mesma lógica do seu carregarFicha antigo) ---
+  if (!dadosSalvos) {
+    limparFicha();
+    return;
+  }
+
+  try {
+    const d = JSON.parse(dadosSalvos);
+
     document.getElementById("nome").value = d.nome || "";
-    sincronizarNomeDoSlotAtual();
     document.getElementById("idade").value = d.idade || "";
     document.getElementById("antecedencia").value = d.antecedencia || "";
     document.getElementById("descricao").value = d.descricao || "";
@@ -3846,9 +3834,10 @@ function carregarFichaDaNuvem() {
     document.getElementById("rdMental").value = d.rdMental || 0;
     document.getElementById("dtBonus").value = d.dtBonus || 0;
     document.getElementById("dtAtributoBase").value = d.dtAtributoBase || "POD";
-    
+
     const img = document.getElementById("previewImg");
-    if(d.imagem){
+    console.log("☁️ Ficha sincronizada com a nuvem!");
+    if (d.imagem) {
       img.src = d.imagem;
       img.style.display = "block";
       img.dataset.base64 = d.imagem;
@@ -3857,22 +3846,28 @@ function carregarFichaDaNuvem() {
       img.dataset.base64 = "";
     }
 
-    for(const s in d.atributos){
-      const el = document.getElementById("atr_"+s);
-      if(el) el.value = d.atributos[s];
+    for (const s in d.atributos) {
+      const el = document.getElementById("atr_" + s);
+      if (el) el.value = d.atributos[s];
     }
 
-    for(const p in d.pericias){
+    for (const p in d.pericias) {
       const data = d.pericias[p];
-      if(typeof data === "object"){
-        document.getElementById(p).value = data.valor || 1;
-        document.getElementById("bonus_"+p).value = data.bonus || 0;
-        document.getElementById("atrKey_"+p).value = data.atributo || "FOR";
+      if (typeof data === "object") {
+        const elValor = document.getElementById(p);
+        if (elValor) elValor.value = data.valor || 1;
+
+        const elBonus = document.getElementById("bonus_" + p);
+        if (elBonus) elBonus.value = data.bonus || 0;
+
+        const elAtr = document.getElementById("atrKey_" + p);
+        if (elAtr) elAtr.value = data.atributo || "FOR";
       } else {
-        document.getElementById(p).value = data;
+        const elValor = document.getElementById(p);
+        if (elValor) elValor.value = data;
       }
     }
-    
+
     habilidades = d.habilidades || [];
     renderHabilidades();
 
@@ -3882,10 +3877,14 @@ function carregarFichaDaNuvem() {
     atualizarDT();
     recalcularVidaSanidade();
     atualizarBloqueio();
-    
-    console.log("☁️ Ficha sincronizada com a nuvem!");
-  });
+
+    atualizarNomeSlotEspecifico(slot, d.nome);
+  } catch (e) {
+    console.error(e);
+    limparFicha();
+  }
 }
+
 
 /* ======== ABA DE NAVEGAÇÃO ======== */
 const abas = document.querySelectorAll(".tab-button");
