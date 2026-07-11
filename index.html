@@ -2073,6 +2073,7 @@ function toggleSidebarRight() {
 }
 
 let usuarioAtual = null;
+const EMAIL_MESTRE = "icarogabrielcavalcantes@gmail.com";
 let isMestre = false;
 let rolagemOcultaAtiva = false;
 let listenersAtivos = []; // Para limpar conexões antigas ao trocar de sala
@@ -2243,16 +2244,17 @@ function registrarLog(tipo, detalhe, total){
   const nome = document.getElementById("jogador").value || "Anônimo";
   
   const checkbox = document.getElementById("rolagemPrivada");
-  const isPrivado = checkbox ? checkbox.checked : false;
 
-  const log = {
+const log = {
+    uid: usuarioAtual ? usuarioAtual.uid : "",
+    email: usuarioAtual ? usuarioAtual.email : "",
     nome,
     tipo,
     detalhe,
     total,
-    privado: isPrivado, 
-    hora: new Date().toLocaleString('pt-BR')
-  };
+    oculto: isRolagemOculta,
+    hora: new Date().toLocaleString("pt-BR")
+};
 
   database.ref('rolagens').push(log)
     .then(() => {
@@ -2282,6 +2284,9 @@ let escutaRolagensAtiva = false; // Controle para não duplicar rolagens
 auth.onAuthStateChanged(user => {
   if (user) {
     usuarioAtual = user;
+    isMestre =
+    user.email &&
+    user.email.toLowerCase() === EMAIL_MESTRE.toLowerCase();
     document.getElementById('btnLogin').style.display = 'none';
     document.getElementById('userInfo').style.display = 'block';
     document.getElementById('userName').innerText = user.displayName;
@@ -2321,24 +2326,19 @@ function atualizarLog() {
   
   let htmlString = ""; 
 
-  const meuNome = document.getElementById("jogador").value.trim();
-  const isMestre = (typeof ehMestre !== 'undefined' && ehMestre) || (meuNome.toLowerCase() === "mestre"); 
-
+  const meuUID = usuarioAtual ? usuarioAtual.uid : "";
   logRolagens.slice().reverse().forEach(l => {
     // LÓGICA DE VISIBILIDADE:
-    // 1. Se não for privado, todos veem.
-    // 2. Se for privado, só vê quem é o dono (l.nome) OU se for o Mestre.
-    const podeVer = !l.privado || isMestre || l.nome === meuNome;
-
+const podeVer = !l.oculto || isMestre || l.uid === meuUID;
     if (podeVer) {
       // Estilo visual para as rolagens
-      const borda = l.privado ? '3px solid #bb33cc' : '3px solid #c5a059';
-      const opacidade = l.privado ? '0.9' : '1';
+      const borda = l.oculto ? '3px solid #bb33cc' : '3px solid #c5a059';
+      const opacidade = l.oculto ? '0.9' : '1';
 
       htmlString += `
         <div class="log-item" style="border-left: ${borda}; opacity: ${opacidade}; margin-bottom: 8px; padding: 5px; background: rgba(0,0,0,0.2);">
           <span class="log-nome" style="font-weight:bold; color:#c5a059;">${l.nome}</span> 
-          ${l.privado ? '<span style="font-size:10px; color:#bb33cc;">(Privado)</span>' : ''}
+          ${l.oculto ? '<span style="font-size:10px; color:#bb33cc;">(Oculto)</span>' : ''}
           → ${l.tipo} <br>
           <span style="font-size: 14px;">${l.detalhe} = <span class="log-valor" style="color:#fff; font-weight:bold;">${l.total}</span></span>
           <div style="font-size:10px; opacity:0.5; margin-top:4px;">${l.hora}</div>
@@ -2428,14 +2428,33 @@ function renderInventario() {
   
   box.innerHTML = htmlString;
 }
+
+function atualizarNomeSlots() {
+
+    const nome =
+        document.getElementById("nome").value.trim();
+
+    const options =
+        document.querySelectorAll("#slot option");
+
+    options.forEach((op, index)=>{
+
+        const slot = index + 1;
+
+        op.textContent =
+            nome
+            ? `${nome} (Slot ${slot})`
+            : `Slot ${slot}`;
+
+    });
+
+}
   
 function exportarFicha() {
-  // Coleta os dados da tela (mesma lógica que usamos no salvarFicha)
   const dados = {
     nome: document.getElementById("nome").value,
     nivel: document.getElementById("nivel").value,
     vida: document.getElementById("vida").value,
-    // ... adicione aqui todos os campos que você deseja exportar
     atributos: {},
     pericias: {}
   };
@@ -3490,6 +3509,7 @@ function carregarFichaDaNuvem() {
 
     // --- PREENCHE OS DADOS (Mesma lógica do seu carregarFicha antigo) ---
     document.getElementById("nome").value = d.nome || "";
+    atualizarNomeSlots();
     document.getElementById("idade").value = d.idade || "";
     document.getElementById("antecedencia").value = d.antecedencia || "";
     document.getElementById("descricao").value = d.descricao || "";
