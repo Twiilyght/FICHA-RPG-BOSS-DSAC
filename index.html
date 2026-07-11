@@ -1622,7 +1622,7 @@
 
     <!-- GERENCIAMENTO DA FICHA -->
     <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px;">
-      <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.9rem;" onclick="salvarFicha()">Salvar Ficha</button>
+      <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.9rem;" onclick="salvarFichaManual()">Salvar Ficha</button>
       <div style="display: flex; gap: 5px;">
         <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.8rem; flex: 1;" onclick="baixarFichaJSON()">Exportar</button>
 <!-- O botão apenas abre o seletor de arquivos -->
@@ -2366,8 +2366,8 @@ function salvarConfiguracao() {
   fecharModalConfig();
   renderHabilidades(); // Isso fará elas aparecerem de novo
   
-  if (typeof salvarFicha === "function") {
-    salvarFicha();
+  if (typeof salvarFichaManual === "function") {
+    salvarFichaManual();
   }
 }
 
@@ -3711,48 +3711,70 @@ function baixarFichaJSON() {
   alerta.style.display="block";
   setTimeout(()=>alerta.style.display="none",2500);
 
-function salvarFichaManual(chave) {
+function salvarFichaManual() {
+  if (!usuarioAtual) {
+    alert("⚠️ Você precisa fazer login com o Google para salvar a ficha!");
+    return;
+  }
+
+  const slot = document.getElementById("slot")?.value || "1";
+  const chave = "fichaRPG_" + slot;
+
   const dados = {
-    nome: document.getElementById("nome").value,
-    jogador: document.getElementById("jogador").value, 
-    idade: document.getElementById("idade").value,
-    antecedencia: document.getElementById("antecedencia").value,
-    descricao: document.getElementById("descricao").value,
-    historia: document.getElementById("historia").value,
-    nivel: document.getElementById("nivel").value,
-    vida: document.getElementById("vida").value,
-    sanidade: document.getElementById("sanidade").value,
-    aura: document.getElementById("aura").value,
-    rdFisica: document.getElementById("rdFisica").value,
-    rdMental: document.getElementById("rdMental").value,
-    dtBonus: document.getElementById("dtBonus").value,
+    jogador: document.getElementById("jogador").value || usuarioAtual.displayName,
+    uid: usuarioAtual.uid,
+    imagem: document.getElementById("previewImg").dataset.base64 || "",
+    nome: document.getElementById("nome").value || "",
+    idade: document.getElementById("idade").value || "",
+    antecedencia: document.getElementById("antecedencia").value || "",
+    descricao: document.getElementById("descricao").value || "",
+    historia: document.getElementById("historia").value || "",
+    inventario: inventario,
+    nivel: document.getElementById("nivel").value || 1,
+    vida: document.getElementById("vida").value || 0,
+    sanidade: document.getElementById("sanidade").value || 0,
+    aura: document.getElementById("aura").value || 0,
     habilidades: habilidades,
-    inventario: inventario, // ADICIONADO: Agora salva o inventário
+    dtBonus: document.getElementById("dtBonus").value || 0,
+    dtAtributoBase: document.getElementById("dtAtributoBase").value || "POD",
+    rdFisica: document.getElementById("rdFisica").value || 0,
+    rdMental: document.getElementById("rdMental").value || 0,
     atributos: {},
     pericias: {}
   };
 
-  // Salva Atributos
   atributos.forEach(a => {
     const el = document.getElementById("atr_" + a.sigla);
     if (el) dados.atributos[a.sigla] = el.value;
   });
 
-  // Salva Perícias (com estrutura completa)
   pericias.forEach((p, i) => {
     const id = "per_" + i;
     dados.pericias[id] = {
-      valor: document.getElementById(id).value,
-      bonus: document.getElementById("bonus_" + id).value,
-      atributo: document.getElementById("atrKey_" + id).value
+      valor: document.getElementById(id)?.value || 1,
+      bonus: document.getElementById("bonus_" + id)?.value || 0,
+      atributo: document.getElementById("atrKey_" + id)?.value || "FOR"
     };
   });
 
-  // A imagem base64 é pesada, salvamos apenas se houver
   const imgData = document.getElementById("previewImg").dataset.base64;
   if (imgData) dados.imagem = imgData;
 
-  database.ref('fichas/' + usuarioAtual.uid).set(dados);
+  localStorage.setItem(chave, JSON.stringify(dados));
+  atualizarNomeSlotEspecifico(slot, dados.nome);
+
+  const alerta = document.getElementById("alerta");
+  if (alerta) {
+    alerta.innerText = `Ficha salva no Slot ${slot} com sucesso!`;
+    alerta.style.display = "block";
+    setTimeout(() => alerta.style.display = "none", 2500);
+  }
+
+  database.ref("fichas/" + usuarioAtual.uid).set(dados)
+    .catch(error => {
+      console.error(error);
+      alert("Erro ao salvar na nuvem: " + error.message);
+    });
 }
   
 function limparFicha(){
