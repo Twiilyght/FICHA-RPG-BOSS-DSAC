@@ -2244,15 +2244,18 @@ firebase.auth().onAuthStateChanged((user) => {
 // ==========================================
 // 2. SISTEMA DE ROLAGEM OCULTA
 // ==========================================
+let isRolagemOculta = false;
+
 function toggleRolagemOculta() {
-  rolagemOcultaAtiva = !rolagemOcultaAtiva;
-  const btn = document.getElementById('btnRolagemPrivada');
-  if (rolagemOcultaAtiva) {
-    btn.classList.add('active');
-    btn.innerHTML = "👁️‍🗨️ Rolar Oculto (Secreto)";
+  const btn = document.getElementById("btnRolagemPrivada");
+  isRolagemOculta = !isRolagemOculta; // Inverte o estado
+  
+  if (isRolagemOculta) {
+    btn.innerHTML = "🙈 Rolagem Oculta (Mestre)";
+    btn.classList.add("active");
   } else {
-    btn.classList.remove('active');
     btn.innerHTML = "👁️ Rolar Aberto (Público)";
+    btn.classList.remove("active");
   }
 }
 
@@ -2287,39 +2290,35 @@ function registrarRolagem(resultadoTexto) {
 
 // Para o Menu Direito (Mestre)
 function criarCampanhaMestre() {
-  const nomeCampanha = document.getElementById('idCampanhaRight').value.trim();
-  if (!nomeCampanha || !usuarioAtual) return alert("Digite o nome da mesa e faça login.");
-
-  const refCampanha = database.ref(`campanhas/${nomeCampanha}`);
-  refCampanha.once('value', snapshot => {
-    if (snapshot.exists()) {
-      const dados = snapshot.val();
-      if (dados.mestre !== usuarioAtual.uid) {
-        return alert("Erro: Já existe uma campanha com este nome pertencente a outro mestre.");
-      }
-      // Já é o mestre desta mesa existente
-      iniciarCampanha(nomeCampanha, true);
-    } else {
-      // Criação de nova mesa
-      refCampanha.set({ mestre: usuarioAtual.uid }).then(() => {
-        iniciarCampanha(nomeCampanha, true);
-      });
-    }
-  });
+  const idCampanha = document.getElementById('idCampanhaRight').value.trim();
+  if (!idCampanha) {
+    alert("Digite um ID para a campanha!");
+    return;
+  }
+  if (!usuarioAtual) {
+    alert("Faça login com o Google primeiro!");
+    return;
+  }
+  
+  campanhaAtual = idCampanha;
+  document.getElementById("statusCampanha").style.display = "block";
+  document.getElementById("nomeCampanhaTexto").innerText = idCampanha;
+  
+  // Inicia a observação da campanha no banco de dados
+  monitorarCampanha(idCampanha);
 }
 
-// Para o Menu Esquerdo (Jogador)
+// 3. Lógica para o Jogador conectar
 function entrarCampanhaJogador() {
-  const nomeCampanha = document.getElementById('idCampanhaLeft').value.trim();
-  if (!nomeCampanha || !usuarioAtual) return alert("Digite o nome da mesa e faça login.");
-
-  const refCampanha = database.ref(`campanhas/${nomeCampanha}`);
-  refCampanha.once('value', snapshot => {
-    if (!snapshot.exists()) return alert("Campanha não encontrada! Verifique o nome com seu mestre.");
-    
-    iniciarCampanha(nomeCampanha, false);
-    enviarDadosJogadorFirebase(); // Manda os status iniciais pro mestre
-  });
+  const idCampanha = document.getElementById('idCampanhaLeft').value.trim();
+  if (!idCampanha || !usuarioAtual) {
+    alert("Faça login e digite o ID da campanha.");
+    return;
+  }
+  
+  campanhaAtual = idCampanha;
+  enviarDadosJogadorFirebase(); // Envia os dados atuais da ficha para a mesa
+  alert("Conectado à campanha: " + idCampanha);
 }
 
 function iniciarCampanha(nome, mestreStatus) {
@@ -2902,8 +2901,11 @@ function rolarAtributo(sigla){
     );
 
   registrarLog(sigla, `1d20 (${d}) + ${v}`, total);
-  
   limparDepois(resId);
+    if (isRolagemOculta) {
+    document.getElementById("logRolagens").innerHTML += resultadoHTML;
+  } else {
+    }
 }
 
 function rolarPericia(id) {
@@ -2973,6 +2975,11 @@ function rolarPericia(id) {
     output.innerHTML = msg;
     limparDepois(resId);
   }
+
+  if (isRolagemOculta) {
+    document.getElementById("logRolagens").innerHTML += resultadoHTML;
+  } else {
+    }
 
   // 6. Lógica Específica (Fortitude/Bloqueio)
   if (nomePericia === "Fortitude") {
