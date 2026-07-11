@@ -1645,7 +1645,7 @@
     <!-- CAMPANHA E ESCUDO DO MESTRE -->
     <div class="bloco-campanha" style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; margin-bottom: 15px;">
       <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Campanha</h3>
-      <input type="text" id="idCampanha" placeholder="Código (ex: mesa123)" style="width: 100%; box-sizing: border-box; padding: 6px; font-size: 0.9rem;">
+      <input type="text" id="idCampanhaLeft" placeholder="Código (ex: mesa123)" style="width: 100%; box-sizing: border-box; padding: 6px; font-size: 0.9rem;">
       <button class="salvar-btn" onclick="entrarNaCampanha()" style="width: 100%; margin-top: 8px; padding: 8px; font-size: 0.9rem;">Conectar</button>
       
       <!-- Aqui é onde as fichas dos outros jogadores vão aparecer -->
@@ -1672,7 +1672,7 @@
       
       <!-- Formulário de Entrada -->
       <div id="formCampanha">
-        <input type="text" id="idCampanha" placeholder="Código (ex: submundo1)" style="width: 100%; box-sizing: border-box; padding: 8px; font-size: 0.9rem; margin-bottom: 8px;">
+        <input type="text" id="idCampanhaRight" placeholder="Código (ex: submundo1)" style="width: 100%; box-sizing: border-box; padding: 8px; font-size: 0.9rem; margin-bottom: 8px;">
         <button class="salvar-btn" onclick="entrarNaCampanha()" style="width: 100%; margin-top: 0; padding: 8px; font-size: 0.9rem;">Conectar à Mesa</button>
       </div>
 
@@ -2023,26 +2023,36 @@ let indiceHabConfig = null;
 let campanhaAtual = "";
 let listenerJogadores = null;
 
-function entrarNaCampanha(idParam = null) {
-  const idCampanha = idParam || document.getElementById('idCampanha').value.trim();
-  const uidUsuario = firebase.auth().currentUser.uid;
+function entrarNaCampanha(inputId) {
+  // Pega o valor baseado no ID passado pelo botão clicado
+  const valorInput = document.getElementById(inputId).value.trim();
+  
+  if (!valorInput) {
+    alert("Por favor, digite o nome da campanha.");
+    return;
+  }
 
-  if (!idCampanha) return;
-  campanhaAtual = idCampanha;
+  // Verificação de segurança (O usuário precisa estar logado)
+  const user = firebase.auth().currentUser;
+  if (!user) {
+    alert("Você precisa estar logado para entrar em uma campanha.");
+    return;
+  }
 
-  firebase.database().ref('campanhas/' + idCampanha + '/mestre').once('value', snapshot => {
-    const uidMestre = snapshot.val();
+  campanhaAtual = valorInput;
+  console.log("Tentando entrar em:", campanhaAtual); // Útil para depuração
+
+  firebase.database().ref('campanhas/' + campanhaAtual + '/mestre').once('value', snapshot => {
+    // Adicione um console.log aqui para saber se o Firebase está respondendo
+    console.log("Resposta do Firebase:", snapshot.val());
 
     document.getElementById('statusCampanha').style.display = 'block';
-    document.getElementById('nomeCampanhaTexto').innerText = idCampanha;
+    document.getElementById('nomeCampanhaTexto').innerText = campanhaAtual;
 
-    if (uidUsuario === uidMestre) {
-      // É O MESTRE: Inicia a escuta em tempo real dos jogadores
-      escutarJogadoresMestre();
-    } else {
-      // É JOGADOR: Envia os próprios dados e não vê a lista
-      enviarDadosJogadorFirebase();
-    }
+    // ... restante da sua lógica de mestre/jogador
+  }).catch(error => {
+    console.error("Erro ao conectar:", error);
+    alert("Erro ao conectar na campanha. Verifique o nome.");
   });
 }
 
