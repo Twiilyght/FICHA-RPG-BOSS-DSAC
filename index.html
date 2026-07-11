@@ -1484,6 +1484,26 @@
     .sidebar-right::-webkit-scrollbar-track { background: rgba(10, 10, 15, 0.6); }
     .sidebar-right::-webkit-scrollbar-thumb { background: var(--cor-dourado); border-radius: 10px; }
 
+/* Botão Flutuante Menu Esquerdo */
+    #btnToggleSidebar {
+      position: fixed;
+      left: 330px;
+      top: 20px;
+      z-index: 1001;
+      background: var(--cor-btn-bg);
+      color: #fff;
+      border: 1px solid var(--cor-dourado);
+      border-radius: 6px;
+      padding: 8px 12px;
+      cursor: pointer;
+      font-family: 'Cinzel', serif;
+      font-weight: bold;
+      box-shadow: 0 0 10px var(--cor-btn-shadow);
+      transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease;
+    }
+    #btnToggleSidebar:hover { transform: scale(1.05); }
+    #btnToggleSidebar.minimized { left: 20px; }
+
     /* Botão Flutuante Menu Direito */
     #btnToggleSidebarRight {
       position: fixed;
