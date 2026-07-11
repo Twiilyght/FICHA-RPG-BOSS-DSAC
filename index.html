@@ -1439,26 +1439,55 @@
     }
 
     /* O conteúdo principal se ajusta ao lado do menu */
+/* =========================================
+       AJUSTES DE LAYOUT E MENUS LATERAIS
+       ========================================= */
     .main-content {
-      margin-left: 320px;
-      width: calc(100% - 320px);
-      padding: 0 18px 40px;
-      transition: margin-left 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.4s ease;
+      /* Remove as larguras fixas e margens antigas. Controlaremos com padding pelo JS */
+      width: 100%;
+      padding-left: 340px; 
+      padding-right: 340px;
+      padding-bottom: 40px;
+      transition: padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       display: flex;
       flex-direction: column;
       align-items: center;
       box-sizing: border-box;
     }
 
-    .main-content.expanded {
-      margin-left: 0;
-      width: 100%;
+    /* Menu Lateral Direito */
+    .sidebar-right {
+      position: fixed;
+      right: 0;
+      top: 0;
+      width: 320px;
+      height: 100vh;
+      background: var(--cor-fundo-bloco);
+      backdrop-filter: blur(12px);
+      border-left: 2px solid var(--cor-borda-bloco-sombra);
+      box-shadow: -10px 0 25px var(--cor-sombra-principal);
+      padding: 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      z-index: 1000;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
     }
 
-    /* Botão Flutuante para abrir/fechar o menu */
-    #btnToggleSidebar {
+    .sidebar-right.minimized {
+      transform: translateX(100%);
+    }
+
+    .sidebar-right::-webkit-scrollbar { width: 8px; }
+    .sidebar-right::-webkit-scrollbar-track { background: rgba(10, 10, 15, 0.6); }
+    .sidebar-right::-webkit-scrollbar-thumb { background: var(--cor-dourado); border-radius: 10px; }
+
+    /* Botão Flutuante Menu Direito */
+    #btnToggleSidebarRight {
       position: fixed;
-      left: 330px;
+      right: 330px;
       top: 20px;
       z-index: 1001;
       background: var(--cor-btn-bg);
@@ -1470,16 +1499,69 @@
       font-family: 'Cinzel', serif;
       font-weight: bold;
       box-shadow: 0 0 10px var(--cor-btn-shadow);
-      transition: left 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease;
+      transition: right 0.4s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s ease;
     }
-    
-    #btnToggleSidebar:hover {
-      transform: scale(1.05);
+    #btnToggleSidebarRight:hover { transform: scale(1.05); }
+    #btnToggleSidebarRight.minimized { right: 20px; }
+
+    /* =========================================
+       TEXTAREAS E BARRAS DE ROLAGEM
+       ========================================= */
+    textarea::-webkit-scrollbar {
+      width: 8px;
+    }
+    textarea::-webkit-scrollbar-track {
+      background: rgba(10, 10, 15, 0.6);
+      border-left: 1px solid rgba(197, 160, 89, 0.1);
+      border-radius: 0 6px 6px 0;
+    }
+    textarea::-webkit-scrollbar-thumb {
+      background: var(--cor-dourado);
+      border-radius: 10px;
+      box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+    }
+    textarea::-webkit-scrollbar-thumb:hover {
+      background: #ff2944;
     }
 
-    #btnToggleSidebar.minimized {
-      left: 20px; /* Volta para o canto da tela quando o menu some */
+    /* Aumentando tamanho de descrição e história */
+    #descricao, #historia {
+      min-height: 180px;
     }
+
+    /* =========================================
+       BOTÃO DE ROLAGEM OCULTA
+       ========================================= */
+    .btn-toggle-oculto {
+      width: 100%;
+      padding: 12px;
+      background: rgba(15, 15, 20, 0.8);
+      color: var(--cor-dourado);
+      border: 1px solid var(--cor-dourado);
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: 'Cinzel', serif;
+      font-weight: bold;
+      font-size: 0.9rem;
+      transition: 0.3s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+    }
+    .btn-toggle-oculto.active {
+      background: #7f1d1d;
+      color: #fff;
+      border-color: #ff2944;
+      box-shadow: 0 0 15px #ff294488, inset 0 0 10px #000000;
+    }
+
+    /* =========================================
+       BLOCO DE NOTAS FLUTUANTE
+       ========================================= */
+    .notas-tema-dark { background: rgba(15, 15, 20, 0.95) !important; color: #e0dabe !important; }
+    .notas-tema-grey { background: #3a3a3a !important; color: #f5f5f5 !important; border-color: #888 !important; }
+    .notas-tema-white { background: #fdfdfd !important; color: #111 !important; border-color: #ccc !important; }
 
     /* Cards do Escudo do Mestre */
     .card-jogador {
@@ -1529,6 +1611,21 @@
       <div id="alerta" class="alerta" style="font-size: 12px; padding: 5px;">Ficha salva com sucesso!</div>
     </div>
 
+<!-- HISTÓRICO DE ROLAGENS (NO MENU ESQUERDO) -->
+    <div style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; flex-grow: 1; display: flex; flex-direction: column;">
+      <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Histórico</h3>
+      
+      <!-- Novo botão de Rolagem Oculta -->
+      <button id="btnRolagemPrivada" class="btn-toggle-oculto" onclick="toggleRolagemOculta()" style="margin-bottom: 12px;">
+        👁️ Rolar Aberto (Público)
+      </button>
+
+      <div id="logRolagens" style="flex-grow: 1; max-height: none; height: 250px;"></div>
+    </div>
+
+      <div id="logRolagens" style="flex-grow: 1; max-height: none; height: 250px;"></div>
+    </div>
+
     <!-- CAMPANHA E ESCUDO DO MESTRE -->
     <div class="bloco-campanha" style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; margin-bottom: 15px;">
       <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Campanha</h3>
@@ -1548,6 +1645,42 @@
       </label>
       <!-- A altura do logRolagens agora é flexível para ocupar o espaço restante -->
       <div id="logRolagens" style="flex-grow: 1; max-height: none; height: 250px;"></div>
+    </div>
+  </aside>
+
+<!-- Botão de controle do menu lateral direito -->
+  <button id="btnToggleSidebarRight" onclick="toggleSidebarRight()">📚 Ocultar Registro</button>
+
+  <!-- MENU LATERAL DIREITO -->
+  <aside id="sidebarRight" class="sidebar-right">
+    <h2 style="font-size: 1.4rem; text-align: center; border-bottom: 1px solid var(--cor-dourado); padding-bottom: 10px; margin-bottom: 10px;">Registro de Informações</h2>
+
+    <!-- BLOCO DE NOTAS -->
+    <div style="margin-bottom: 20px;">
+      <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Anotações da Missão</h3>
+      <button class="salvar-btn" style="width: 100%; padding: 10px; font-size: 0.9rem;" onclick="abrirModalNotas()">Abrir Bloco de Notas 📝</button>
+    </div>
+
+    <!-- CAMPANHA E ESCUDO DO MESTRE -->
+    <div class="bloco-campanha" style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; flex-grow: 1;">
+      <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Escudo do Mestre</h3>
+      
+      <!-- Formulário de Entrada -->
+      <div id="formCampanha">
+        <input type="text" id="idCampanha" placeholder="Código (ex: submundo1)" style="width: 100%; box-sizing: border-box; padding: 8px; font-size: 0.9rem; margin-bottom: 8px;">
+        <button class="salvar-btn" onclick="entrarNaCampanha()" style="width: 100%; margin-top: 0; padding: 8px; font-size: 0.9rem;">Conectar à Mesa</button>
+      </div>
+
+      <!-- Status de Conexão -->
+      <div id="statusCampanha" style="display: none; background: rgba(0, 46, 138, 0.2); border: 1px solid #0099ff; border-radius: 6px; padding: 10px; text-align: center;">
+        <p style="margin: 0 0 10px 0; font-size: 0.85rem; color: #cddffb;">
+          👁️ Observando a campanha: <br>
+          <strong id="nomeCampanhaTexto" style="color: var(--cor-dourado); font-size: 1.1rem; display: block; margin-top: 5px;"></strong>
+        </p>
+        <button onclick="sairDaCampanha()" style="background:transparent; border:1px solid #ff2944; color:#ff2944; cursor:pointer; padding:6px; border-radius:4px; font-family: 'Cinzel', serif; width: 100%; font-weight: bold; transition: 0.3s;">Desconectar / Sair</button>
+      </div>
+      
+      <div id="listaJogadores" style="margin-top: 15px;"></div>
     </div>
   </aside>
 
@@ -1572,7 +1705,6 @@
     <div class="tab-button active" data-tab="geral">Geral</div>
     <div class="tab-button" data-tab="atributos-pericias">Atributos e Perícias</div>
     <div class="tab-button" data-tab="estatisticas">Estatísticas</div>
-     <div class="tab-button" data-tab="notas">Anotações</div>
   </div>
 
   <div id="dicePopup" class="dice-popup" style="display:none">
@@ -1819,12 +1951,36 @@
   </div>
   </div>
 
-<div id="notas" class="tab-content">
-  <div class="bloco" style="max-width: 100%;">
-    <h2 style="margin-bottom: 20px;">Diário de Campanha</h2>
-    <textarea id="anotar" placeholder="Registre suas investigações, contatos e pistas..."></textarea>
+<!-- MODAL DO BLOCO DE NOTAS -->
+  <div id="modalNotas" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); z-index: 10000; justify-content: center; align-items: center;">
+    <div class="modal-content bloco" style="max-width: 800px; width: 95%; height: 85vh; display: flex; flex-direction: column;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--cor-dourado-transp); padding-bottom: 10px; margin-bottom: 15px;">
+        <h3 style="color: var(--cor-dourado); margin: 0;">Bloco de Notas Flutuante</h3>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <span style="font-size: 0.8rem; color: #ccc;">Fundo:</span>
+          <button onclick="mudarFundoNotas('dark')" style="background: #1a1a1a; border: 1px solid #c5a059; width: 24px; height: 24px; border-radius: 4px; cursor: pointer;" title="Escuro Padrão"></button>
+          <button onclick="mudarFundoNotas('grey')" style="background: #4a4a4a; border: 1px solid #ccc; width: 24px; height: 24px; border-radius: 4px; cursor: pointer;" title="Cinza"></button>
+          <button onclick="mudarFundoNotas('white')" style="background: #ffffff; border: 1px solid #999; width: 24px; height: 24px; border-radius: 4px; cursor: pointer;" title="Branco"></button>
+          <span class="popup-close" onclick="fecharModalNotas()" style="margin-left: 15px; font-size: 1.2rem;">✖</span>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+        <select id="categoriaNota" style="width: 30%;">
+          <option value="geral">Geral</option>
+          <option value="missoes">Missões/Quests</option>
+          <option value="pistas">Pistas e Lore</option>
+          <option value="npcs">NPCs/Contatos</option>
+        </select>
+        <input type="text" id="tituloNota" placeholder="Título da anotação..." style="flex-grow: 1;">
+      </div>
+
+      <textarea id="textoAnotacao" class="notas-tema-dark" placeholder="Escreva suas anotações aqui..." style="flex-grow: 1; resize: none; width: 100%; box-sizing: border-box; transition: background 0.3s, color 0.3s;"></textarea>
+      
+      <button class="salvar-btn" onclick="fecharModalNotas()" style="align-self: flex-end; margin-top: 15px;">Salvar e Fechar</button>
+    </div>
   </div>
-</div>
 </main>
 
  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -1862,13 +2018,40 @@ let indiceHabConfig = null;
 let campanhaAtual = "";
 
 function entrarNaCampanha() {
-    campanhaAtual = document.getElementById("idCampanha").value;
+    campanhaAtual = document.getElementById("idCampanha").value.trim();
     if (!campanhaAtual) return alert("Digite um código!");
     
-    alert("Você entrou na campanha: " + campanhaAtual);
+    // Troca a UI
+    document.getElementById("formCampanha").style.display = "none";
+    document.getElementById("statusCampanha").style.display = "block";
+    document.getElementById("nomeCampanhaTexto").innerText = campanhaAtual;
     
-    // Se for o Mestre, ele começa a observar os jogadores
     monitorarCampanha(campanhaAtual);
+}
+
+function sairDaCampanha() {
+    campanhaAtual = "";
+    document.getElementById("formCampanha").style.display = "block";
+    document.getElementById("statusCampanha").style.display = "none";
+    document.getElementById("listaJogadores").innerHTML = "";
+    
+    // Se precisar desligar o listener do Firebase
+    // database.ref('campanhas/').off();
+}
+
+function abrirModalNotas() {
+  document.getElementById("modalNotas").style.display = "flex";
+}
+
+function fecharModalNotas() {
+  document.getElementById("modalNotas").style.display = "none";
+  // Opcional: Adicionar chamada de salvamento no localStorage ou Firebase aqui
+}
+
+function mudarFundoNotas(tema) {
+  const textarea = document.getElementById("textoAnotacao");
+  textarea.classList.remove("notas-tema-dark", "notas-tema-grey", "notas-tema-white");
+  textarea.classList.add("notas-tema-" + tema);
 }
 
 /* =========================================
@@ -1888,6 +2071,17 @@ function toggleSidebar() {
   } else {
     btnToggle.innerHTML = "🗃️ Ocultar Menu";
   }
+}
+
+function toggleSidebarRight() {
+  const sidebar = document.getElementById('sidebarRight');
+  const btnToggle = document.getElementById('btnToggleSidebarRight');
+
+  sidebar.classList.toggle('minimized');
+  btnToggle.classList.toggle('minimized');
+
+  btnToggle.innerHTML = sidebar.classList.contains('minimized') ? "Registro 📚" : "📚 Ocultar Registro";
+  atualizarLayout();
 }
 
 /* =========================================
@@ -1986,6 +2180,19 @@ function carregarFichaDeOutro(dados) {
     document.getElementById("vida").value = dados.vida;
     // ... repita para os outros campos ...
     alert("Ficha de " + dados.nome + " carregada no painel!");
+}
+
+function toggleRolagemOculta() {
+  const btn = document.getElementById('btnRolagemPrivada');
+  rolagemPrivadaStatus = !rolagemPrivadaStatus;
+  
+  if (rolagemPrivadaStatus) {
+    btn.classList.add('active');
+    btn.innerHTML = "🙈 Rolar Oculto (Mestre vê)";
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML = "👁️ Rolar Aberto (Público)";
+  }
 }
 
 function abrirModalConfig(index) {
@@ -2232,6 +2439,15 @@ function aplicarTema(tema) {
 temaSelector.addEventListener('change', (e) => {
   aplicarTema(e.target.value);
 });
+
+function atualizarLayout() {
+  const leftOpen = !document.getElementById('sidebar').classList.contains('minimized');
+  const rightOpen = !document.getElementById('sidebarRight').classList.contains('minimized');
+  const main = document.getElementById('main-content');
+  
+  main.style.paddingLeft = leftOpen ? '340px' : '20px';
+  main.style.paddingRight = rightOpen ? '340px' : '20px';
+}
 
 function mostrarPopup(titulo, detalhe, total){
 
