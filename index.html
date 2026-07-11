@@ -1625,6 +1625,7 @@
       <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.9rem;" onclick="salvarFicha()">Salvar Ficha</button>
       <div style="display: flex; gap: 5px;">
         <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.8rem; flex: 1;" onclick="baixarFichaJSON()">Exportar</button>
+        <input type="file" id="inputFicha" style="display: none;" accept=".json">
         <button class="salvar-btn" style="margin-top: 0; padding: 8px; font-size: 0.8rem; flex: 1;" onclick="carregarFichaJSON(event)">Importar</button>
       </div>
       <textarea id="codigoFicha" placeholder="Código da ficha para importação/exportação..." rows="2" style="width:100%; box-sizing: border-box; border-radius:4px; padding:5px; font-family:monospace; font-size: 10px;"></textarea>
@@ -2449,6 +2450,7 @@ function atualizarNomeSlots() {
     });
 
 }
+document.getElementById('inputFicha').addEventListener('change', carregarFichaJSON);
   
 function baixarFichaJSON() {
   // Pega qual slot de ficha está sendo usado (ajuste o ID se o seu select for diferente)
@@ -2487,16 +2489,18 @@ function baixarFichaJSON() {
 }
 
 function carregarFichaJSON(event) {
+  if (!event || !event.target || !event.target.files || event.target.files.length === 0) {
+    console.warn("Nenhum arquivo selecionado ou evento inválido.");
+    return;
+  }
+
   const file = event.target.files[0];
-  if (!file) return;
 
   const reader = new FileReader();
   reader.onload = function(e) {
     try {
       let dados = JSON.parse(e.target.result);
 
-      // VERIFICAÇÃO DE RETROCOMPATIBILIDADE:
-      // Se o jogador carregar um .json de uma ficha antiga (Lista), converte para Objeto
       if (Array.isArray(dados)) {
         const lista = dados;
         dados = {
