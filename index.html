@@ -1646,8 +1646,7 @@
     <div class="bloco-campanha" style="border-top: 1px dashed var(--cor-dourado-transp); padding-top: 15px; margin-bottom: 15px;">
       <h3 style="color: var(--cor-dourado); font-size: 1rem; margin-top: 0;">Campanha</h3>
       <input type="text" id="idCampanhaLeft" placeholder="Código (ex: mesa123)" style="width: 100%; box-sizing: border-box; padding: 6px; font-size: 0.9rem;">
-      <button class="salvar-btn" onclick="entrarNaCampanhaJogador()" style="width: 100%; margin-top: 8px; padding: 8px; font-size: 0.9rem;">Conectar</button>
-      
+      <button class="salvar-btn" onclick="entrarCampanhaJogador()" style="width: 100%; margin-top: 8px; padding: 8px; font-size: 0.9rem;">Conectar</button>      
       <!-- Aqui é onde as fichas dos outros jogadores vão aparecer -->
       <div id="listaJogadores" style="margin-top: 15px;"></div>
     </div>
@@ -1673,8 +1672,7 @@
       <!-- Formulário de Entrada -->
       <div id="formCampanha">
         <input type="text" id="idCampanhaRight" placeholder="Código (ex: submundo1)" style="width: 100%; box-sizing: border-box; padding: 8px; font-size: 0.9rem; margin-bottom: 8px;">
-        <button class="salvar-btn" onclick="entrarNaCampanhaMestre()" style="width: 100%; margin-top: 0; padding: 8px; font-size: 0.9rem;">Conectar à Mesa</button>
-      </div>
+        <button class="salvar-btn" onclick="criarCampanhaMestre()" style="width: 100%; margin-top: 0; padding: 8px; font-size: 0.9rem;">Criar / Conectar à Mesa</button>      </div>
 
       <!-- Status de Conexão -->
       <div id="statusCampanha" style="display: none; background: rgba(0, 46, 138, 0.2); border: 1px solid #0099ff; border-radius: 6px; padding: 10px; text-align: center;">
