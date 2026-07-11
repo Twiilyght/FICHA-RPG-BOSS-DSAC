@@ -2452,19 +2452,47 @@ function atualizarNomeSlots() {
   
 function exportarFicha() {
   const dados = {
-    nome: document.getElementById("nome").value,
-    nivel: document.getElementById("nivel").value,
-    vida: document.getElementById("vida").value,
+    nome: document.getElementById("nome")?.value || "",
+    idade: document.getElementById("idade")?.value || "",
+    nivel: document.getElementById("nivel")?.value || 1,
+    vida: document.getElementById("vida")?.value || 0,
+    sanidade: document.getElementById("sanidade")?.value || 0,
+    aura: document.getElementById("aura")?.value || 0,
+    antecedencia: document.getElementById("antecedencia")?.value || "",
+    descricao: document.getElementById("descricao")?.value || "",
+    historia: document.getElementById("historia")?.value || "",
+    rdFisica: document.getElementById("rdFisica")?.value || 0,
+    rdMental: document.getElementById("rdMental")?.value || 0,
+    dtBonus: document.getElementById("dtBonus")?.value || 0,
     atributos: {},
-    pericias: {}
+    pericias: {},
+    // É vital incluir as arrays abaixo para salvar as configurações complexas:
+    habilidades: [], 
+    inventario: []
   };
 
-  // Coleta atributos (ajuste conforme o seu código)
-  atributos.forEach(a => {
-    dados.atributos[a.sigla] = document.getElementById("atr_" + a.sigla)?.value || 0;
-  });
+  // Coleta atributos (mantendo sua lógica)
+  if (typeof atributos !== 'undefined') {
+    atributos.forEach(a => {
+      dados.atributos[a.sigla] = document.getElementById("atr_" + a.sigla)?.value || 0;
+    });
+  }
 
-  // Converte o objeto para uma string (JSON) e depois para Base64 para ficar um código "limpo"
+  // Coleta perícias (você precisará adaptar conforme o HTML do seu novo sistema)
+  // Exemplo: dados.pericias = ...
+
+  // ==========================================
+  // ATENÇÃO: INSERÇÃO DE HABILIDADES E ITENS
+  // ==========================================
+  // Como as Habilidades e o Inventário geralmente são listas dinâmicas, 
+  // você precisa igualá-las às variáveis globais (arrays) que guardam 
+  // esses dados no seu script atual enquanto o jogador usa a ficha.
+  //
+  // Exemplo (descomente e ajuste para o nome das suas variáveis):
+  // dados.habilidades = variavelGlobalDeHabilidades; 
+  // dados.inventario = variavelGlobalDeInventario;
+  
+  // Converte o objeto para uma string (JSON) e depois para Base64
   const fichaString = JSON.stringify(dados);
   const codigoExportado = btoa(unescape(encodeURIComponent(fichaString)));
 
@@ -2481,18 +2509,68 @@ function importarFicha() {
   if (!codigo) return alert("Cole um código válido!");
 
   try {
-    // Decodifica o Base64 de volta para objeto
+    // Decodifica o Base64 de volta para string
     const jsonString = decodeURIComponent(escape(atob(codigo)));
-    const dados = JSON.parse(jsonString);
+    let dados = JSON.parse(jsonString);
 
+    // VERIFICAÇÃO DE RETROCOMPATIBILIDADE:
+    // Se 'dados' for uma Array, significa que é um código do sistema antigo.
+    // Vamos convertê-lo para o formato de Objeto do sistema novo.
+    if (Array.isArray(dados)) {
+      const lista = dados;
+      
+      dados = {
+        nome: lista[0], 
+        idade: lista[1], 
+        nivel: lista[2],
+        vida: lista[3], 
+        sanidade: lista[4], 
+        aura: lista[5],
+        antecedencia: lista[6], 
+        descricao: lista[7], 
+        historia: lista[8],
+        rdFisica: lista[9], 
+        rdMental: lista[10], 
+        dtBonus: lista[11],
+        atributos: {}, 
+        pericias: {}, 
+        habilidades: [], 
+        inventario: []
+      };
+
+      // Reconstrói Atributos
+      const siglas = ["FOR", "CON", "AGI", "INT", "POD"];
+      lista[12].forEach((val, i) => { dados.atributos[siglas[i]] = val; });
+
+      // Reconstrói Perícias
+      lista[13].forEach((p, i) => {
+        dados.pericias["per_" + i] = { valor: p[0], bonus: p[1], atributo: p[2] };
+      });
+
+      // Reconstrói Habilidades
+      dados.habilidades = lista[14].map(h => ({
+        nome: h[0],
+        dado: h[1],
+        desc: h[2],
+        config: h[3] || {}, 
+        rolagens: h[4] || [],
+        img: h[5] || ""
+      }));
+
+      // Reconstrói Inventário
+      dados.inventario = lista[15].map(i => ({ nome: i[0], peso: i[1], desc: i[2] }));
+    }
+
+    // A partir daqui, 'dados' sempre será um Objeto, independente de onde veio.
     // Preenche os campos na tela
     document.getElementById("nome").value = dados.nome || "";
     document.getElementById("nivel").value = dados.nivel || 1;
-    // ... preencha o restante dos campos ...
+    // ... continue preenchendo o restante dos campos do HTML ...
 
     alert("Ficha importada com sucesso! Lembre-se de clicar em 'Salvar na Nuvem'.");
   } catch (e) {
-    alert("Código inválido!");
+    console.error(e);
+    alert("Código inválido ou incompatível!");
   }
 }
   
