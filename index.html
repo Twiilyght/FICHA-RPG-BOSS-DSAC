@@ -1991,9 +1991,11 @@
   
 <script>
 
+let fichasSlots = {};
 let inventario = [];
-  
 let logRolagens = [];
+let habilidades = [];
+
 
 // Variável global para sabermos qual habilidade está sendo editada no momento
 let indiceHabConfig = null;
@@ -2619,6 +2621,8 @@ function sincronizarNomeDoSlotAtual() {
 document.getElementById('inputFicha').addEventListener('change', carregarFichaJSON);
   
 document.getElementById("slot").addEventListener("change", () => {
+  carregarFichaDoSlotAtual();
+});
   const slot = document.getElementById("slot").value;
   const chave = "fichaRPG_" + slot;
   const dadosSalvos = localStorage.getItem(chave);
@@ -2631,12 +2635,82 @@ document.getElementById("slot").addEventListener("change", () => {
     limparFicha();
     atualizarNomeSlotEspecifico(slot, "");
   }
-});
 
 document.getElementById("nome").addEventListener("input", () => {
   sincronizarNomeDoSlotAtual();
 });
 
+function carregarFichaDoSlotAtual() {
+  const slot = getSlotAtual();
+  const chave = getChaveSlot(slot);
+  const dadosSalvos = localStorage.getItem(chave);
+
+  if (!dadosSalvos) {
+    limparFicha();
+    atualizarNomeSlotEspecifico(slot, "");
+    return;
+  }
+
+  try {
+    const d = JSON.parse(dadosSalvos);
+
+    document.getElementById("jogador").value = d.jogador || "";
+    document.getElementById("nome").value = d.nome || "";
+    document.getElementById("idade").value = d.idade || "";
+    document.getElementById("antecedencia").value = d.antecedencia || "";
+    document.getElementById("descricao").value = d.descricao || "";
+    document.getElementById("historia").value = d.historia || "";
+    document.getElementById("nivel").value = d.nivel || 1;
+    document.getElementById("vida").value = d.vida || 0;
+    document.getElementById("sanidade").value = d.sanidade || 0;
+    document.getElementById("aura").value = d.aura || 0;
+    document.getElementById("rdFisica").value = d.rdFisica || 0;
+    document.getElementById("rdMental").value = d.rdMental || 0;
+    document.getElementById("dtBonus").value = d.dtBonus || 0;
+    document.getElementById("dtAtributoBase").value = d.dtAtributoBase || "POD";
+
+    const img = document.getElementById("previewImg");
+    if (d.imagem) {
+      img.src = d.imagem;
+      img.style.display = "block";
+      img.dataset.base64 = d.imagem;
+    } else {
+      img.style.display = "none";
+      img.dataset.base64 = "";
+    }
+
+    for (const s in d.atributos) {
+      const el = document.getElementById("atr_" + s);
+      if (el) el.value = d.atributos[s];
+    }
+
+    for (const p in d.pericias) {
+      const data = d.pericias[p];
+      const elValor = document.getElementById(p);
+      const elBonus = document.getElementById("bonus_" + p);
+      const elAtr = document.getElementById("atrKey_" + p);
+
+      if (typeof data === "object") {
+        if (elValor) elValor.value = data.valor || 1;
+        if (elBonus) elBonus.value = data.bonus || 0;
+        if (elAtr) elAtr.value = data.atributo || "FOR";
+      }
+    }
+
+    habilidades = d.habilidades || [];
+    inventario = d.inventario || [];
+    renderHabilidades();
+    renderInventario();
+    atualizarDT();
+    recalcularVidaSanidade();
+    atualizarBloqueio();
+
+    atualizarNomeSlotEspecifico(slot, d.nome || "");
+  } catch (e) {
+    console.error(e);
+    limparFicha();
+  }
+}
 
 function baixarFichaJSON() {
   const slot = document.getElementById("slot")?.value || "1";
@@ -2678,8 +2752,8 @@ function carregarFichaJSON(event) {
     return;
   }
 
-  const slot = document.getElementById("slot").value;
-  const chave = "fichaRPG_" + slot;
+  const slot = getSlotAtual();
+  const chave = getChaveSlot(slot);
   const file = event.target.files[0];
   const reader = new FileReader();
 
@@ -2762,23 +2836,20 @@ function carregarFichaJSON(event) {
 
           const elAtr = document.getElementById("atrKey_" + p);
           if (elAtr) elAtr.value = data.atributo || "FOR";
-        } else {
-          const elValor = document.getElementById(p);
-          if (elValor) elValor.value = data;
         }
       }
 
       habilidades = dados.habilidades || [];
-      renderHabilidades();
-
       inventario = dados.inventario || [];
-      renderInventario();
 
+      renderHabilidades();
+      renderInventario();
       atualizarDT();
       recalcularVidaSanidade();
       atualizarBloqueio();
 
       localStorage.setItem(chave, JSON.stringify(dados));
+      fichasSlots[slot] = JSON.parse(JSON.stringify(dados));
       atualizarNomeSlotEspecifico(slot, dados.nome);
 
       alert(`Ficha importada e salva no Slot ${slot} com sucesso!`);
@@ -2814,7 +2885,6 @@ const pericias = [
 ["POD","Adestramento"],["POD","Charme"],["POD","Vontade"],["POD","Energia"]
 ];
 
-let habilidades = [];
 let ultimoTesteFortitude = 0;
 
 /* =============== INTERFACE =============== */
@@ -3711,9 +3781,38 @@ function baixarFichaJSON() {
     });
 } 
 
-  const alerta=document.getElementById("alerta");
-  alerta.style.display="block";
-  setTimeout(()=>alerta.style.display="none",2500);
+function getSlotAtual() {
+  return document.getElementById("slot")?.value || "1";
+}
+
+function getChaveSlot(slot) {
+  return "fichaRPG_" + slot;
+}
+
+function montarDadosFicha() {
+  return {
+    jogador: document.getElementById("jogador").value || (usuarioAtual ? usuarioAtual.displayName : ""),
+    uid: usuarioAtual ? usuarioAtual.uid : "",
+    imagem: document.getElementById("previewImg").dataset.base64 || "",
+    nome: document.getElementById("nome").value || "",
+    idade: document.getElementById("idade").value || "",
+    antecedencia: document.getElementById("antecedencia").value || "",
+    descricao: document.getElementById("descricao").value || "",
+    historia: document.getElementById("historia").value || "",
+    inventario: JSON.parse(JSON.stringify(inventario)),
+    nivel: document.getElementById("nivel").value || 1,
+    vida: document.getElementById("vida").value || 0,
+    sanidade: document.getElementById("sanidade").value || 0,
+    aura: document.getElementById("aura").value || 0,
+    habilidades: JSON.parse(JSON.stringify(habilidades)),
+    dtBonus: document.getElementById("dtBonus").value || 0,
+    dtAtributoBase: document.getElementById("dtAtributoBase").value || "POD",
+    rdFisica: document.getElementById("rdFisica").value || 0,
+    rdMental: document.getElementById("rdMental").value || 0,
+    atributos: {},
+    pericias: {}
+  };
+}
 
 function salvarFichaManual() {
   if (!usuarioAtual) {
@@ -3721,31 +3820,9 @@ function salvarFichaManual() {
     return;
   }
 
-  const slot = document.getElementById("slot").value;
-  const chave = "fichaRPG_" + slot;
-
-  const dados = {
-    jogador: usuarioAtual.displayName,
-    uid: usuarioAtual.uid,
-    imagem: document.getElementById("previewImg").dataset.base64 || "",
-    nome: document.getElementById("nome").value,
-    idade: document.getElementById("idade").value,
-    antecedencia: document.getElementById("antecedencia").value,
-    descricao: document.getElementById("descricao").value,
-    historia: document.getElementById("historia").value,
-    inventario: inventario,
-    nivel: document.getElementById("nivel").value,
-    vida: document.getElementById("vida").value,
-    sanidade: document.getElementById("sanidade").value,
-    aura: document.getElementById("aura").value,
-    habilidades: habilidades,
-    dtBonus: document.getElementById("dtBonus").value,
-    dtAtributoBase: document.getElementById("dtAtributoBase").value,
-    rdFisica: document.getElementById("rdFisica").value,
-    rdMental: document.getElementById("rdMental").value,
-    atributos: {},
-    pericias: {}
-  };
+  const slot = getSlotAtual();
+  const chave = getChaveSlot(slot);
+  const dados = montarDadosFicha();
 
   atributos.forEach(a => {
     dados.atributos[a.sigla] = document.getElementById("atr_" + a.sigla).value;
@@ -3760,6 +3837,7 @@ function salvarFichaManual() {
   });
 
   localStorage.setItem(chave, JSON.stringify(dados));
+  fichasSlots[slot] = JSON.parse(JSON.stringify(dados));
   atualizarNomeSlotEspecifico(slot, dados.nome);
 
   const alerta = document.getElementById("alerta");
@@ -3885,6 +3963,10 @@ function carregarFichaDaNuvem() {
   }
 }
 
+document.getElementById("nome").addEventListener("input", () => {
+  sincronizarNomeDoSlotAtual();
+  salvarFichaManual();
+});
 
 /* ======== ABA DE NAVEGAÇÃO ======== */
 const abas = document.querySelectorAll(".tab-button");
