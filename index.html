@@ -2199,44 +2199,6 @@ function iniciarMonitoramentoMestre() {
   });
 }
 
-function escutarJogadoresMestre() {
-
-  // Limpa listeners antigos para não duplicar
-  if (listenerJogadores) refJogadores.off('value', listenerJogadores);
-
-  listenerJogadores = refJogadores.on('value', snapshot => {
-    const lista = document.getElementById('listaJogadores');
-    lista.innerHTML = ''; // Limpa a lista para atualizar
-    
-    snapshot.forEach(child => {
-      const dados = child.val();
-      
-      // Constrói o card miniatura aproveitando suas classes CSS
-      const card = document.createElement('div');
-      card.className = 'card-jogador';
-      
-      card.innerHTML = `
-        <strong style="color: var(--cor-dourado); font-size: 1.1rem;">${dados.nome || 'Desconhecido'}</strong>
-        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 4px;">
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: #ff2944;">❤️ Vida:</span> 
-            <strong>${dados.vida}/${dados.vidaMax}</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: #0099ff;">🧠 Sanidade:</span> 
-            <strong>${dados.sanidade}/${dados.sanidadeMax}</strong>
-          </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: #ffca2d;">✨ Aura:</span> 
-            <strong>${dados.aura}/${dados.auraMax}</strong>
-          </div>
-        </div>
-      `;
-      lista.appendChild(card);
-    });
-  });
-}
-
 function abrirModalNotas() {
   document.getElementById("modalNotas").style.display = "flex";
 }
